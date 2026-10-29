@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState } from 'react';
 import {
-  Calendar,
   History,
   Image as ImageIcon,
   Pencil,
@@ -55,11 +54,6 @@ export function TransactionItem({
 
   const latestEditLog = useMemo(
     () => txLogs.find((l) => l.action_type === 'TX_UPDATED') ?? null,
-    [txLogs]
-  );
-
-  const createdLog = useMemo(
-    () => txLogs.find((l) => l.action_type === 'TX_CREATED') ?? null,
     [txLogs]
   );
 
@@ -162,6 +156,14 @@ export function TransactionItem({
                     <span aria-hidden="true">&middot;</span>
                     <span className="font-medium text-amber-700 dark:text-amber-400 truncate max-w-[90px]">
                       {event.title}
+                    </span>
+                  </>
+                )}
+                {latestEditLog && (
+                  <>
+                    <span aria-hidden="true">&middot;</span>
+                    <span className="font-semibold text-amber-700 dark:text-amber-400">
+                      Diubah {latestEditLog.actor_name}
                     </span>
                   </>
                 )}

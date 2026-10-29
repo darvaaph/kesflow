@@ -287,14 +287,23 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         activityLogs: prev.activityLogs ?? [],
         quickPresets:
           presetsRes.data && presetsRes.data.length > 0
-            ? presetsRes.data.map((r: any) => ({
-                id: r.id,
-                space_id: r.space_id,
-                label: r.label,
-                amount: Number(r.amount),
-                categoryName: r.category_name || 'Transport & Parkir',
-                iconName: r.icon_name || 'Zap',
-              }))
+            ? presetsRes.data.map(
+                (r: {
+                  id: string;
+                  space_id?: string;
+                  label: string;
+                  amount: number | string;
+                  category_name?: string;
+                  icon_name?: string;
+                }) => ({
+                  id: r.id,
+                  space_id: r.space_id,
+                  label: r.label,
+                  amount: Number(r.amount),
+                  categoryName: r.category_name || 'Transport & Parkir',
+                  iconName: r.icon_name || 'Zap',
+                })
+              )
             : prev.quickPresets ?? QUICK_PRESETS,
       }));
     } catch (err) {
