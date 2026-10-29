@@ -10,9 +10,10 @@ import {
   RotateCcw,
   ShieldCheck,
   Smartphone,
-  UserCheck,
   Users,
   Pencil,
+  AlertTriangle,
+  UserMinus,
 } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { formatRelativeDate } from '@/lib/format';
@@ -28,24 +29,41 @@ export default function SettingsPage() {
   const router = useRouter();
   const {
     space,
+    members,
     profiles,
     currentUser,
+    partnerUser,
     activityLogs,
+    isMockMode,
     loginAsAccount,
     updateNickname,
-    resetDemoData,
+    clearSpaceTransactions,
+    leaveCoupleSpace,
     logout,
   } = useKesflow();
 
   const [copied, setCopied] = useState(false);
-  const [resetDone, setResetDone] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
   const [isMutationOpen, setIsMutationOpen] = useState(false);
+  
+  // Nickname sheet
   const [isEditNicknameOpen, setIsEditNicknameOpen] = useState(false);
   const [nicknameInput, setNicknameInput] = useState('');
   const [isSavingNickname, setIsSavingNickname] = useState(false);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
 
+  // Confirm Reset Transactions Modal
+  const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  // Confirm Leave Space Modal
+  const [isConfirmLeaveOpen, setIsConfirmLeaveOpen] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
+
   const inviteCode = space?.invite_code || 'LOVE24';
+  const isFullCouple = members.length >= 2;
 
   const handleOpenEditNickname = () => {
     setNicknameInput(currentUser?.display_name || '');
@@ -81,10 +99,33 @@ export default function SettingsPage() {
     }
   };
 
-  const handleResetData = () => {
-    resetDemoData();
-    setResetDone(true);
-    setTimeout(() => setResetDone(false), 2500);
+  const handleConfirmReset = async () => {
+    setIsResetting(true);
+    setResetError(null);
+    try {
+      await clearSpaceTransactions();
+      setIsConfirmResetOpen(false);
+      setResetSuccess(true);
+      setTimeout(() => setResetSuccess(false), 3000);
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : 'Gagal mengosongkan transaksi');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const handleConfirmLeave = async () => {
+    setIsLeaving(true);
+    setLeaveError(null);
+    try {
+      await leaveCoupleSpace();
+      setIsConfirmLeaveOpen(false);
+      router.replace('/onboarding');
+    } catch (err) {
+      setLeaveError(err instanceof Error ? err.message : 'Gagal keluar dari ruang');
+    } finally {
+      setIsLeaving(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -99,19 +140,31 @@ export default function SettingsPage() {
           Setelan Space
         </h1>
         <p className="text-xs text-stone-600 dark:text-stone-400">
-          Kelola akun pasangan, invite code Space, dan instalasi PWA.
+          Kelola akun pasangan, invite code Space, dan riwayat transaksi.
         </p>
       </div>
 
+      {resetSuccess && (
+        <div
+          role="status"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-semibold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200"
+        >
+          ✓ Seluruh riwayat transaksi date berhasil dikosongkan. Saldo kembali Rp 0!
+        </div>
+      )}
+
+      {/* Anggota Pasangan Card */}
       <Card className="p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400" />
             <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-              Anggota Pasangan ({Math.min(profiles.length, 2)}/2)
+              Anggota Pasangan ({Math.min(members.length, 2)}/2)
             </h2>
           </div>
-          <Badge variant="coral">Khusus 2 Orang</Badge>
+          <Badge variant={isFullCouple ? 'emerald' : 'coral'}>
+            {isFullCouple ? 'Terhubung Berdua' : 'Menunggu Pasangan'}
+          </Badge>
         </div>
 
         <div className="space-y-2.5">
@@ -152,21 +205,23 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loginAsAccount(profile.id)}
-                  >
-                    <UserCheck className="h-3.5 w-3.5" />
-                    <span>Masuk sbg {profile.display_name}</span>
-                  </Button>
+                  isMockMode && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loginAsAccount(profile.id)}
+                    >
+                      Ganti Akun Demo
+                    </Button>
+                  )
                 )}
               </div>
             );
           })}
         </div>
 
+        {/* Invite Code Box */}
         <div className="rounded-xl border border-dashed border-orange-300 bg-orange-50/60 p-3.5 dark:border-orange-800 dark:bg-orange-950/30 flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-xs text-stone-600 dark:text-stone-400">
@@ -197,6 +252,7 @@ export default function SettingsPage() {
         </div>
       </Card>
 
+      {/* Aktivitas Card */}
       <Card className="p-5 space-y-3.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -246,6 +302,7 @@ export default function SettingsPage() {
         </Button>
       </Card>
 
+      {/* PWA Install Guide */}
       <Card className="p-5 space-y-3">
         <div className="flex items-center gap-2">
           <Smartphone className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400" />
@@ -267,7 +324,8 @@ export default function SettingsPage() {
         </ul>
       </Card>
 
-      <Card className="p-5 space-y-3">
+      {/* Space & Akun Controls */}
+      <Card className="p-5 space-y-4">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400" />
           <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
@@ -275,30 +333,59 @@ export default function SettingsPage() {
           </h2>
         </div>
 
-        <div className="space-y-2">
-          <Button
-            type="button"
-            variant="outline"
-            fullWidth
-            onClick={() => router.push('/onboarding')}
-          >
-            Bikin Space Baru / Gabung Pakai Kode
-          </Button>
+        {isFullCouple ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-xs text-stone-700 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-stone-300">
+            <span className="font-bold text-emerald-800 dark:text-emerald-300">
+              ✓ Ruang Kencan Aktif:
+            </span>{' '}
+            Anda dan {partnerUser?.display_name || 'Pasangan'} sudah terhubung berdua di ruang ini.
+          </div>
+        ) : (
+          <div className="rounded-xl border border-orange-200 bg-orange-50/60 p-3 text-xs text-stone-700 dark:border-orange-900/60 dark:bg-orange-950/20 dark:text-stone-300 space-y-2">
+            <p>
+              <span className="font-bold text-orange-800 dark:text-orange-300">
+                Menunggu Pasangan:
+              </span>{' '}
+              Ruang kencan ini baru ada Anda. Bagikan kode di atas ke pacar/pasanganmu.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              fullWidth
+              onClick={() => router.push('/onboarding')}
+            >
+              Pasangan sudah buat ruang duluan? Gabung kodenya di sini
+            </Button>
+          </div>
+        )}
 
+        <div className="space-y-2.5 pt-1">
+          {/* Tombol Kosongkan Transaksi dengan Verifikasi */}
           <Button
             type="button"
             variant="outline"
             fullWidth
-            onClick={handleResetData}
+            onClick={() => setIsConfirmResetOpen(true)}
+            className="text-stone-700 hover:text-red-700 dark:text-stone-300 dark:hover:text-red-400"
           >
             <RotateCcw className="h-4 w-4" />
-            <span>
-              {resetDone
-                ? 'Data Awal Berhasil Dipulihkan!'
-                : 'Reset ke Data Awal Pasangan'}
-            </span>
+            <span>Kosongkan Riwayat Transaksi (Reset ke Rp 0)</span>
           </Button>
 
+          {/* Tombol Keluar dari Ruang */}
+          <Button
+            type="button"
+            variant="outline"
+            fullWidth
+            onClick={() => setIsConfirmLeaveOpen(true)}
+            className="text-stone-700 hover:text-stone-900 dark:text-stone-300"
+          >
+            <UserMinus className="h-4 w-4" />
+            <span>Keluar dari Ruang Kencan Ini</span>
+          </Button>
+
+          {/* Tombol Logout */}
           <Button
             type="button"
             variant="danger"
@@ -306,7 +393,7 @@ export default function SettingsPage() {
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
-            <span>Keluar / Pindah Akun di Halaman Login</span>
+            <span>Keluar dari Akun (Logout)</span>
           </Button>
         </div>
       </Card>
@@ -316,6 +403,7 @@ export default function SettingsPage() {
         onClose={() => setIsMutationOpen(false)}
       />
 
+      {/* Modal Edit Nickname */}
       <BottomSheet
         isOpen={isEditNicknameOpen}
         onClose={() => setIsEditNicknameOpen(false)}
@@ -325,7 +413,7 @@ export default function SettingsPage() {
         <form onSubmit={handleSaveNickname} className="space-y-4 pt-2">
           <Input
             label="Nickname / Nama Panggilan Baru"
-            placeholder="Contoh: Sayang / Budi / Nadin"
+            placeholder="Contoh: Sayang / Ayang"
             value={nicknameInput}
             onChange={(e) => setNicknameInput(e.target.value)}
             required
@@ -351,6 +439,90 @@ export default function SettingsPage() {
             </Button>
           </div>
         </form>
+      </BottomSheet>
+
+      {/* Modal Verifikasi / Konfirmasi Kosongkan Transaksi */}
+      <BottomSheet
+        isOpen={isConfirmResetOpen}
+        onClose={() => !isResetting && setIsConfirmResetOpen(false)}
+        title="Kosongkan Semua Transaksi?"
+        description="Tindakan ini akan menghapus seluruh catatan belanja date berdua dan mengembalikan saldo hutang menjadi Rp 0."
+      >
+        <div className="space-y-4 pt-2">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-900 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200 space-y-2">
+            <div className="flex items-center gap-1.5 font-bold">
+              <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+              <span>Peringatan Penting:</span>
+            </div>
+            <p className="leading-relaxed">
+              Akun Anda dan pasangan Anda <strong>tetap saling terhubung</strong>. Hanya seluruh daftar belanja, struk, dan riwayat pelunasan yang akan dihapus bersih.
+            </p>
+          </div>
+
+          {resetError && (
+            <p className="text-xs font-semibold text-red-600 dark:text-red-400">
+              {resetError}
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isResetting}
+              onClick={() => setIsConfirmResetOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              disabled={isResetting}
+              onClick={handleConfirmReset}
+            >
+              {isResetting ? 'Mengosongkan...' : 'Ya, Kosongkan Transaksi'}
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* Modal Verifikasi / Konfirmasi Keluar dari Ruang */}
+      <BottomSheet
+        isOpen={isConfirmLeaveOpen}
+        onClose={() => !isLeaving && setIsConfirmLeaveOpen(false)}
+        title="Keluar dari Ruang Kencan?"
+        description="Anda akan terputus dari ruang bersama ini dan diarahkan ke halaman onboarding."
+      >
+        <div className="space-y-4 pt-2">
+          <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
+            Jika Anda keluar, Anda tidak dapat lagi melihat atau mencatat transaksi di ruang ini, kecuali Anda diundang kembali menggunakan kode 6 karakter.
+          </p>
+
+          {leaveError && (
+            <p className="text-xs font-semibold text-red-600 dark:text-red-400">
+              {leaveError}
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isLeaving}
+              onClick={() => setIsConfirmLeaveOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              disabled={isLeaving}
+              onClick={handleConfirmLeave}
+            >
+              {isLeaving ? 'Memproses...' : 'Ya, Keluar dari Ruang'}
+            </Button>
+          </div>
+        </div>
       </BottomSheet>
     </div>
   );

@@ -124,6 +124,8 @@ interface KesflowContextValue {
   ) => Promise<QuickPresetItem>;
   deleteQuickPreset: (id: string) => Promise<void>;
   resetQuickPresets: () => Promise<void>;
+  clearSpaceTransactions: () => Promise<void>;
+  leaveCoupleSpace: () => Promise<void>;
   resetDemoData: () => void;
   clearError: () => void;
 }
@@ -1682,6 +1684,86 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     await fetchSupabaseData();
   }, [isMockMode, state, broadcastLocalState, fetchSupabaseData]);
 
+  const clearSpaceTransactions = useCallback(async (): Promise<void> => {
+    setError(null);
+    if (!state.space) return;
+
+    if (isMockMode) {
+      const nextState: KesflowStateStorage = {
+        ...state,
+        transactions: [],
+        settlements: [],
+        activityLogs: [
+          {
+            id: `log-${Date.now()}`,
+            space_id: state.space.id,
+            actor_id: currentUser?.id ?? DEMO_USER_A_ID,
+            actor_name: currentUser?.display_name || 'Kamu',
+            action_type: 'TX_DELETED',
+            target_id: state.space.id,
+            title: 'Reset Transaksi Ruang',
+            description: `${currentUser?.display_name || 'Kamu'} mengosongkan seluruh riwayat transaksi date (saldo kembali Rp 0).`,
+            amount: 0,
+            created_at: new Date().toISOString(),
+          },
+          ...(state.activityLogs ?? []),
+        ],
+      };
+      setState(nextState);
+      broadcastLocalState(nextState);
+      return;
+    }
+
+    const spaceId = state.space.id;
+    const supabase = createClient();
+
+    const [txDel, stDel] = await Promise.all([
+      supabase.from('transactions').delete().eq('space_id', spaceId),
+      supabase.from('settlements').delete().eq('space_id', spaceId),
+    ]);
+
+    if (txDel.error) throw new Error(txDel.error.message);
+    if (stDel.error) throw new Error(stDel.error.message);
+
+    await fetchSupabaseData();
+  }, [isMockMode, state, currentUser, broadcastLocalState, fetchSupabaseData]);
+
+  const leaveCoupleSpace = useCallback(async (): Promise<void> => {
+    setError(null);
+    if (!state.space) return;
+
+    if (isMockMode) {
+      const nextState: KesflowStateStorage = {
+        ...state,
+        space: null,
+        members: [],
+        transactions: [],
+        settlements: [],
+        events: [],
+      };
+      setState(nextState);
+      broadcastLocalState(nextState);
+      return;
+    }
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user && state.space) {
+      const { error: leaveErr } = await supabase
+        .from('space_members')
+        .delete()
+        .eq('space_id', state.space.id)
+        .eq('user_id', user.id);
+
+      if (leaveErr) throw new Error(leaveErr.message);
+    }
+
+    await fetchSupabaseData();
+  }, [isMockMode, state, broadcastLocalState, fetchSupabaseData]);
+
   const resetDemoData = useCallback(() => {
     const initial = getInitialStorage();
     setState(initial);
@@ -1731,6 +1813,8 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     updateQuickPreset,
     deleteQuickPreset,
     resetQuickPresets,
+    clearSpaceTransactions,
+    leaveCoupleSpace,
     resetDemoData,
     clearError,
   };
