@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Kesflow - Couple Expense Tracker',
     short_name: 'Kesflow',
     description:
-      'Catatan pengeluaran kencan berdua dan pelacak saldo berjalan pasangan.',
+      'Catat pengeluaran date berdua dan pantau saldo pasangan.',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait-primary',

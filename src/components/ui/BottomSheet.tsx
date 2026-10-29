@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,21 +37,22 @@ export function BottomSheet({
     };
   }, [isOpen, onClose]);
 
-  // Keep mounted until the exit animation (200ms) finishes.
+  // Keep mounted until the exit animation (350ms) finishes.
   const [mounted, setMounted] = useState(isOpen);
   useEffect(() => {
     if (isOpen) {
       setMounted(true);
       return;
     }
-    const t = setTimeout(() => setMounted(false), 200);
+    const t = setTimeout(() => setMounted(false), 350);
     return () => clearTimeout(t);
   }, [isOpen]);
 
-  if (!isOpen && !mounted) return null;
+  if ((!isOpen && !mounted) || typeof document === 'undefined') return null;
   const closing = !isOpen;
 
-  return (
+  // Portal: an ancestor with transform would otherwise become the containing block of `fixed`.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
       role="dialog"
@@ -67,7 +69,7 @@ export function BottomSheet({
       />
       <div
         className={cn(
-          'relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-warm-bg dark:bg-stone-900 border-t sm:border border-stone-200 dark:border-stone-800 p-5 pb-safe shadow-warm sm:animate-none',
+          'relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-warm-bg dark:bg-stone-900 border-t sm:border border-stone-200 dark:border-stone-800 p-5 pb-safe shadow-warm will-change-transform sm:animate-none',
           closing ? 'motion-safe:animate-sheet-down' : 'motion-safe:animate-sheet-up',
           className
         )}
@@ -98,6 +100,7 @@ export function BottomSheet({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -29,7 +29,7 @@ export function DashboardPageSkeleton() {
     <div
       className="space-y-6 animate-fadeIn"
       aria-busy="true"
-      aria-label="Memuat beranda..."
+      aria-label="Memuat home..."
     >
       {/* 1. BalanceCard Skeleton */}
       <div className="rounded-2xl border border-stone-200/90 bg-white p-5 dark:border-stone-800 dark:bg-stone-900 space-y-4">
@@ -97,7 +97,7 @@ export function EventsPageSkeleton() {
     <div
       className="space-y-5 animate-fadeIn"
       aria-busy="true"
-      aria-label="Memuat album kencan..."
+      aria-label="Memuat momen..."
     >
       {/* 1. Header & Tombol Buat Album */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -261,7 +261,7 @@ export function SettingsPageSkeleton() {
     <div
       className="space-y-6 animate-fadeIn"
       aria-busy="true"
-      aria-label="Memuat pengaturan..."
+      aria-label="Memuat setelan..."
     >
       {/* 1. Header */}
       <div className="space-y-1">

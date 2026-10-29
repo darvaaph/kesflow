@@ -93,7 +93,7 @@ export function QuickPresets() {
             id="quick-presets-heading"
             className="text-sm font-bold text-stone-900 dark:text-stone-100"
           >
-            Catat Cepat Pengeluaran Kecil
+            Quick Add Pengeluaran Kecil
           </h2>
         </div>
         <span className="text-xs text-stone-600 dark:text-stone-400 whitespace-nowrap">
@@ -138,7 +138,7 @@ export function QuickPresets() {
       <BottomSheet
         isOpen={Boolean(selectedPreset)}
         onClose={() => setSelectedPreset(null)}
-        title={`Catat Cepat: ${selectedPreset?.label || ''}`}
+        title={`Quick Add: ${selectedPreset?.label || ''}`}
         description="Pastikan siapa yang membayar dan cara pembagiannya sebelum disimpan."
       >
         {selectedPreset && (
@@ -201,9 +201,9 @@ export function QuickPresets() {
               </span>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'EQUAL_50_50' as const, label: 'Bagi 50:50' },
-                  { id: 'FULL_TREAT' as const, label: '100% Traktir' },
-                  { id: 'FULL_OWE' as const, label: 'Ditalangi' },
+                  { id: 'EQUAL_50_50' as const, label: 'Split 50:50' },
+                  { id: 'FULL_TREAT' as const, label: 'Treat 100%' },
+                  { id: 'FULL_OWE' as const, label: 'Talangin' },
                 ].map((m) => (
                   <button
                     key={m.id}
@@ -228,7 +228,7 @@ export function QuickPresets() {
                   htmlFor="quick-preset-event"
                   className="block text-xs font-medium text-stone-700 dark:text-stone-300"
                 >
-                  Masukkan ke Album Acara Kencan? (Opsional)
+                  Masuk ke Momen? (opsional)
                 </label>
                 <select
                   id="quick-preset-event"
@@ -237,11 +237,11 @@ export function QuickPresets() {
                   className="w-full min-h-[44px] rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
                 >
                   <option value="">
-                    Pengeluaran Harian Biasa (Tanpa Album Acara)
+                    Harian Biasa (tanpa Momen)
                   </option>
                   {events.map((evt) => (
                     <option key={evt.id} value={evt.id}>
-                      Album: {evt.title}
+                      Momen: {evt.title}
                     </option>
                   ))}
                 </select>

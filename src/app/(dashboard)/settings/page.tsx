@@ -64,10 +64,10 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-lg font-bold text-stone-900 dark:text-stone-100">
-          Pengaturan Couple Space
+          Setelan Space
         </h1>
         <p className="text-xs text-stone-600 dark:text-stone-400">
-          Kelola akun pasangan, kode undangan ruang, dan instalasi PWA.
+          Kelola akun pasangan, invite code Space, dan instalasi PWA.
         </p>
       </div>
 
@@ -126,7 +126,7 @@ export default function SettingsPage() {
         <div className="rounded-xl border border-dashed border-orange-300 bg-orange-50/60 p-3.5 dark:border-orange-800 dark:bg-orange-950/30 flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-xs text-stone-600 dark:text-stone-400">
-              Kode Undangan Ruang ({space?.name || 'Ruang Raka & Nadin'})
+              Invite Code ({space?.name || 'Raka & Nadin'})
             </p>
             <p className="font-mono text-lg font-extrabold tracking-widest text-orange-900 dark:text-orange-200">
               {inviteCode}
@@ -158,14 +158,14 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2">
             <History className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400" />
             <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-              Buku Mutasi &amp; Log Aktivitas
+              Aktivitas
             </h2>
           </div>
           <Badge variant="neutral">{activityLogs.length} Catatan</Badge>
         </div>
         <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
           Pantau siapa yang mencatat, mengedit, menghapus pengeluaran, atau
-          melakukan cicilan pelunasan saldo.
+          nyicil Settle Up saldo.
         </p>
 
         {activityLogs.length > 0 && (
@@ -198,7 +198,7 @@ export default function SettingsPage() {
           onClick={() => setIsMutationOpen(true)}
         >
           <History className="h-4 w-4 text-orange-700 dark:text-orange-400" />
-          <span>Buka Seluruh Riwayat Mutasi ({activityLogs.length})</span>
+          <span>Buka Semua Aktivitas ({activityLogs.length})</span>
         </Button>
       </Card>
 
@@ -227,7 +227,7 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400" />
           <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-            Tindakan Ruang &amp; Akun
+            Space &amp; Akun
           </h2>
         </div>
 
@@ -238,7 +238,7 @@ export default function SettingsPage() {
             fullWidth
             onClick={() => router.push('/onboarding')}
           >
-            Buat Ruang Baru / Gabung Kode Pasangan
+            Bikin Space Baru / Gabung Pakai Kode
           </Button>
 
           <Button

@@ -73,7 +73,7 @@ export type BalanceEntry =
 export interface BalanceEntries {
   /** Baris yang memengaruhi sisa, terbaru dulu. */
   entries: BalanceEntry[];
-  /** Jumlah transaksi yang tidak mengubah saldo (mis. traktir 100%). */
+  /** Jumlah transaksi yang tidak mengubah saldo (mis. treat 100%). */
   neutralTransactionCount: number;
 }
 
@@ -117,7 +117,7 @@ export function buildBalanceEntries(
     entries.push({
       kind: 'settlement',
       id: st.id,
-      title: 'Pelunasan',
+      title: 'Settle Up',
       date: st.settled_at,
       fromUserId: st.from_user_id,
       toUserId: st.to_user_id,

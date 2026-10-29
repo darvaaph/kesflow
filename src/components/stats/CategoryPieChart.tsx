@@ -58,10 +58,10 @@ export function CategoryPieChart({
     return (
       <Card className="p-5 space-y-2">
         <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-          Kategori apa yang paling banyak menyerap biaya kencan?
+          Kategori apa yang paling banyak menyerap biaya date?
         </h2>
         <p className="text-xs text-stone-600 dark:text-stone-400">
-          Belum ada transaksi tercatat. Catat pengeluaran kencan pertama kalian
+          Belum ada transaksi tercatat. Catat pengeluaran date pertama kalian
           untuk melihat rincian kategori.
         </p>
       </Card>
@@ -76,7 +76,7 @@ export function CategoryPieChart({
     <Card className="p-5 space-y-4">
       <div>
         <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-          Kategori apa yang paling banyak menyerap biaya kencan?
+          Kategori apa yang paling banyak menyerap biaya date?
         </h2>
         <p className="text-xs text-stone-600 dark:text-stone-400">
           Terbesar: <strong>{items[0].name}</strong> ({items[0].percentage}% dari
@@ -90,7 +90,7 @@ export function CategoryPieChart({
             viewBox="0 0 140 140"
             className="h-36 w-36 -rotate-90"
             role="img"
-            aria-label="Diagram lingkaran distribusi kategori pengeluaran kencan"
+            aria-label="Diagram lingkaran distribusi kategori pengeluaran date"
           >
             <circle
               cx="70"

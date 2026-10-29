@@ -10,10 +10,10 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 
 const SPLIT_LABELS: Record<SplitType, string> = {
-  EQUAL_50_50: 'Bagi 50:50',
-  FULL_TREAT: '100% Traktir',
-  FULL_OWE: 'Ditalangi Penuh',
-  CUSTOM: 'Kustom',
+  EQUAL_50_50: 'Split 50:50',
+  FULL_TREAT: 'Treat 100%',
+  FULL_OWE: 'Talangin Semua',
+  CUSTOM: 'Custom',
 };
 
 const COLLAPSED_COUNT = 8;
@@ -71,8 +71,8 @@ export function BalanceDetailSheet({
   const headline = summary.isSettled
     ? 'Saldo kalian seimbang'
     : summary.partnerOwesMe
-    ? `${partnerName} berhutang ke kamu`
-    : `Kamu berhutang ke ${partnerName}`;
+    ? `${partnerName} masih utang ke kamu`
+    : `Kamu masih utang ke ${partnerName}`;
 
   const settledDisplay =
     summary.settled > 0
@@ -92,8 +92,8 @@ export function BalanceDetailSheet({
     <BottomSheet
       isOpen={isOpen}
       onClose={onClose}
-      title="Rincian Saldo"
-      description="Dari mana angka hutang ini berasal."
+      title="Detail Saldo"
+      description="Dari mana angka utang ini berasal."
     >
       <div className="space-y-5">
         <section
@@ -108,7 +108,7 @@ export function BalanceDetailSheet({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <dt className="font-medium text-stone-800 dark:text-stone-200">
-                  Total talangan bersih
+                  Total talangan (net)
                 </dt>
                 {summary.offsetOwed > 0 && (
                   <p className="mt-0.5 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
@@ -124,7 +124,7 @@ export function BalanceDetailSheet({
             </div>
             <div className="flex items-center justify-between gap-3">
               <dt className="font-medium text-stone-800 dark:text-stone-200">
-                Sudah dilunasi
+                Udah dibayar
               </dt>
               <dd className="shrink-0 font-bold tabular-nums text-emerald-800 dark:text-emerald-300">
                 {settledDisplay}
@@ -150,7 +150,7 @@ export function BalanceDetailSheet({
               Yang membentuk saldo ini
             </h3>
             <p className="text-xs text-stone-600 dark:text-stone-400">
-              Tiap baris menunjukkan pengaruhnya ke sisa hutang{' '}
+              Tiap baris menunjukkan pengaruhnya ke sisa utang{' '}
               {debtorName}.
             </p>
           </div>
@@ -189,7 +189,7 @@ export function BalanceDetailSheet({
                       <div className="min-w-0">
                         <p className="break-words text-sm font-semibold leading-snug text-stone-900 dark:text-stone-100">
                           {entry.kind === 'settlement'
-                            ? `${nameOf(entry.fromUserId)} melunasi ke ${nameOf(
+                            ? `${nameOf(entry.fromUserId)} udah bayar ke ${nameOf(
                                 entry.toUserId
                               )}`
                             : entry.title}
@@ -241,7 +241,7 @@ export function BalanceDetailSheet({
 
           {neutralTransactionCount > 0 && (
             <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-              {neutralTransactionCount} transaksi lain (mis. traktir 100%) tidak
+              {neutralTransactionCount} transaksi lain (mis. treat 100%) tidak
               memengaruhi saldo.
             </p>
           )}
@@ -284,7 +284,7 @@ export function BalanceDetailSheet({
         {!summary.isSettled && (
           <Button type="button" fullWidth onClick={handleSettle}>
             <HandHeart className="h-4 w-4 shrink-0" />
-            <span>Tandai Lunas ({formatRupiah(summary.remaining)})</span>
+            <span>Settle Up ({formatRupiah(summary.remaining)})</span>
           </Button>
         )}
       </div>

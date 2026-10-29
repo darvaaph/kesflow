@@ -63,16 +63,29 @@ export function TransactionItem({
     [txLogs]
   );
 
+  const getSplitLabel = () => {
+    switch (transaction.split_type) {
+      case 'EQUAL_50_50':
+        return 'Split 50:50';
+      case 'FULL_TREAT':
+        return 'Treat 100%';
+      case 'FULL_OWE':
+        return 'Talangin';
+      case 'CUSTOM':
+        return 'Custom';
+    }
+  };
+
   const getSplitBadge = () => {
     switch (transaction.split_type) {
       case 'EQUAL_50_50':
-        return <Badge variant="neutral">Bagi 50:50</Badge>;
+        return <Badge variant="neutral">Split 50:50</Badge>;
       case 'FULL_TREAT':
-        return <Badge variant="emerald">100% Traktir</Badge>;
+        return <Badge variant="emerald">Treat 100%</Badge>;
       case 'FULL_OWE':
-        return <Badge variant="coral">Ditalangi Penuh</Badge>;
+        return <Badge variant="coral">Talangin Semua</Badge>;
       case 'CUSTOM':
-        return <Badge variant="violet">Kustom</Badge>;
+        return <Badge variant="violet">Custom</Badge>;
     }
   };
 
@@ -87,14 +100,14 @@ export function TransactionItem({
 
     if (transaction.split_type === 'FULL_TREAT') {
       return paidByMe
-        ? `Kamu traktir ${partnerName}`
-        : `${partnerName} traktir kamu`;
+        ? `Kamu treat ${partnerName}`
+        : `Treat (Rp 0)`;
     }
 
     if (paidByMe) {
-      return `Piutangmu +${formatRupiah(partnerShare)}`;
+      return `Kamu nalangi ${formatRupiah(partnerShare)}`;
     }
-    return `Bagianmu -${formatRupiah(myShare)}`;
+    return `Bagianmu ${formatRupiah(myShare)}`;
   };
 
   const handleDelete = async () => {
@@ -117,51 +130,40 @@ export function TransactionItem({
       <button
         type="button"
         onClick={() => setShowDetail(true)}
-        className="w-full rounded-2xl border border-stone-200/90 bg-white p-3.5 text-left transition-colors hover:border-stone-300 hover:bg-stone-50/70 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
+        className="w-full rounded-2xl border border-stone-200/90 bg-white p-3 text-left transition-colors hover:border-stone-300 hover:bg-stone-50/70 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200">
               <CategoryIcon
                 name={category?.icon || 'MoreHorizontal'}
                 className="h-5 w-5"
               />
             </div>
-            <div className="min-w-0 flex-1 space-y-1">
-              <p className="text-sm font-bold leading-snug break-words text-stone-900 dark:text-stone-100">
-                {transaction.title}
-              </p>
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-stone-600 dark:text-stone-400">
-                <span>Dibayar {paidByMe ? myName : partnerName}</span>
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="text-sm font-bold leading-tight text-stone-900 dark:text-stone-100 truncate">
+                  {transaction.title}
+                </p>
+                {transaction.receipt_url && (
+                  <ImageIcon className="h-3.5 w-3.5 shrink-0 text-stone-400" />
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-x-1.5 text-xs text-stone-500 dark:text-stone-400">
+                <span>{paidByMe ? 'Kamu' : partnerName}</span>
                 <span aria-hidden="true">&middot;</span>
                 <span>{formatRelativeDate(transaction.spent_at)}</span>
-                {latestEditLog ? (
+                <span aria-hidden="true">&middot;</span>
+                <span className="font-medium text-stone-600 dark:text-stone-300">
+                  {getSplitLabel()}
+                </span>
+                {event && (
                   <>
                     <span aria-hidden="true">&middot;</span>
-                    <span className="font-semibold text-amber-800 dark:text-amber-300">
-                      Diubah {latestEditLog.actor_name}
+                    <span className="font-medium text-amber-700 dark:text-amber-400 truncate max-w-[90px]">
+                      {event.title}
                     </span>
                   </>
-                ) : createdLog ? (
-                  <>
-                    <span aria-hidden="true">&middot;</span>
-                    <span>Dicatat {createdLog.actor_name}</span>
-                  </>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                {getSplitBadge()}
-                {event && (
-                  <Badge variant="amber">
-                    <Calendar className="h-3 w-3 shrink-0" />
-                    <span>{event.title}</span>
-                  </Badge>
-                )}
-                {transaction.receipt_url && (
-                  <Badge variant="neutral">
-                    <ImageIcon className="h-3 w-3 shrink-0" />
-                    <span>Struk</span>
-                  </Badge>
                 )}
               </div>
             </div>
@@ -174,10 +176,10 @@ export function TransactionItem({
             <p
               className={`text-xs font-semibold tabular-nums whitespace-nowrap ${
                 transaction.split_type === 'FULL_TREAT'
-                  ? 'text-stone-600 dark:text-stone-400'
+                  ? 'text-stone-500 dark:text-stone-400'
                   : paidByMe
-                  ? 'text-emerald-800 dark:text-emerald-300'
-                  : 'text-orange-800 dark:text-orange-300'
+                  ? 'text-emerald-700 dark:text-emerald-400'
+                  : 'text-orange-700 dark:text-orange-400'
               }`}
             >
               {getImpactText()}
@@ -189,7 +191,7 @@ export function TransactionItem({
       <BottomSheet
         isOpen={showDetail}
         onClose={() => setShowDetail(false)}
-        title="Rincian Pengeluaran Kencan"
+        title="Detail Pengeluaran Date"
         description={formatRelativeDate(transaction.spent_at)}
       >
         <div className="space-y-4">
@@ -213,7 +215,7 @@ export function TransactionItem({
             {event && (
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs text-stone-600 dark:text-stone-400">
-                  Album Acara
+                  Momen
                 </span>
                 <Badge variant="amber">{event.title}</Badge>
               </div>
@@ -233,6 +235,12 @@ export function TransactionItem({
               <span className="text-xs font-bold text-stone-900 dark:text-stone-100">
                 {payerLabel}
               </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs text-stone-600 dark:text-stone-400">
+                Skema Pembagian
+              </span>
+              <div>{getSplitBadge()}</div>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs text-stone-600 dark:text-stone-400">
@@ -260,7 +268,7 @@ export function TransactionItem({
               <div className="flex items-center gap-1.5">
                 <History className="h-3.5 w-3.5 text-orange-700 dark:text-orange-400" />
                 <p className="text-xs font-bold text-stone-900 dark:text-stone-100">
-                  Riwayat Status &amp; Perubahan
+                  Riwayat Perubahan
                 </p>
               </div>
               <div className="space-y-2">

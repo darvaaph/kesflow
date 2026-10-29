@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle2, History, Plus } from 'lucide-react';
+import { CheckCircle2, History } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { formatRelativeDate, formatRupiah } from '@/lib/format';
 import { BalanceCard } from '@/components/dashboard/BalanceCard';
@@ -29,35 +29,23 @@ export default function DashboardPage() {
       <QuickPresets />
 
       <section aria-labelledby="recent-transactions-heading" className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center justify-between">
           <h2
             id="recent-transactions-heading"
             className="text-sm font-bold text-stone-900 dark:text-stone-100"
           >
-            Riwayat Belanja Kencan
+            Jajan Date
           </h2>
-          <div className="flex items-center gap-1.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0 whitespace-nowrap"
-              onClick={() => setIsMutationOpen(true)}
-            >
-              <History className="h-4 w-4 text-stone-700 dark:text-stone-300" />
-              <span>Log Mutasi</span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0 whitespace-nowrap"
-              onClick={() => setIsAddOpen(true)}
-            >
-              <Plus className="h-4 w-4 text-orange-700 dark:text-orange-400" />
-              <span>Catat Lengkap</span>
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200 gap-1.5 px-2"
+            onClick={() => setIsMutationOpen(true)}
+          >
+            <History className="h-3.5 w-3.5 text-stone-600 dark:text-stone-400" />
+            <span>Aktivitas</span>
+          </Button>
         </div>
 
         <TransactionList onOpenAddTransaction={() => setIsAddOpen(true)} />
@@ -69,7 +57,7 @@ export default function DashboardPage() {
             id="settlements-heading"
             className="text-xs font-bold text-stone-700 dark:text-stone-300"
           >
-            Riwayat Pelunasan Saldo (Settle Up)
+            Riwayat Settle Up
           </h2>
           <div className="space-y-2">
             {settlements.map((st) => (
@@ -81,7 +69,7 @@ export default function DashboardPage() {
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-400" />
                   <div className="min-w-0">
                     <p className="text-xs font-bold leading-snug text-stone-900 dark:text-stone-100">
-                      {getUserName(st.from_user_id)} melunasi ke{' '}
+                      {getUserName(st.from_user_id)} udah bayar ke{' '}
                       {getUserName(st.to_user_id)}
                     </p>
                     <p className="text-[11px] text-stone-600 dark:text-stone-400">

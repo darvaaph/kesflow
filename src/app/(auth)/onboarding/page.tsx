@@ -20,7 +20,7 @@ export default function OnboardingPage() {
   } = useKesflow();
 
   const [tab, setTab] = useState<'create' | 'join'>('create');
-  const [spaceName, setSpaceName] = useState('Kencan Kita');
+  const [spaceName, setSpaceName] = useState('Date Kita');
   const [nickname, setNickname] = useState(currentUser?.display_name || '');
   const [inviteCodeInput, setInviteCodeInput] = useState('');
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export default function OnboardingPage() {
       setGeneratedCode(inviteCode);
     } catch (err) {
       setErrorMsg(
-        err instanceof Error ? err.message : 'Gagal membuat ruang kencan.'
+        err instanceof Error ? err.message : 'Gagal bikin Space.'
       );
     } finally {
       setIsSubmitting(false);
@@ -70,7 +70,7 @@ export default function OnboardingPage() {
       router.push('/');
     } catch (err) {
       setErrorMsg(
-        err instanceof Error ? err.message : 'Gagal bergabung ke ruang pasangan.'
+        err instanceof Error ? err.message : 'Gagal gabung ke Space pasangan.'
       );
     } finally {
       setIsSubmitting(false);
@@ -95,10 +95,10 @@ export default function OnboardingPage() {
             Khusus Pasangan (Maksimal 2 Orang)
           </Badge>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
-            Siapkan Couple Space Kalian
+            Siapkan Space Kalian
           </h1>
           <p className="text-sm text-stone-600 dark:text-stone-400">
-            Buat ruang kencan privat baru atau masukkan 6 huruf kode dari
+            Bikin Space privat baru atau masukkan kode 6 huruf dari
             pasanganmu.
           </p>
         </div>
@@ -106,7 +106,7 @@ export default function OnboardingPage() {
         <Card elevated className="space-y-5 p-6">
           <div
             role="tablist"
-            aria-label="Pilihan Couple Space"
+            aria-label="Pilihan Space"
             className="grid grid-cols-2 gap-1.5 rounded-xl bg-stone-100 p-1 dark:bg-stone-800"
           >
             <button
@@ -124,7 +124,7 @@ export default function OnboardingPage() {
               }`}
             >
               <HeartHandshake className="h-4 w-4" />
-              <span>Buat Ruang Baru</span>
+              <span>Bikin Space Baru</span>
             </button>
             <button
               type="button"
@@ -153,7 +153,7 @@ export default function OnboardingPage() {
                 </div>
                 <div className="space-y-1">
                   <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">
-                    Ruang Kencan Siap!
+                    Space Siap!
                   </h2>
                   <p className="text-xs text-stone-600 dark:text-stone-400">
                     Bagikan kode 6 karakter di bawah ini ke pasanganmu agar
@@ -191,20 +191,20 @@ export default function OnboardingPage() {
                   size="lg"
                   onClick={() => router.push('/')}
                 >
-                  Masuk ke Beranda Kencan
+                  Masuk ke Home
                 </Button>
               </div>
             ) : (
               <form onSubmit={handleCreateSpace} className="space-y-4" noValidate>
                 <Input
-                  label="Nama Ruang Kencan"
-                  placeholder="Contoh: Kencan Kita"
+                  label="Nama Space"
+                  placeholder="Contoh: Date Kita"
                   value={spaceName}
                   onChange={(e) => setSpaceName(e.target.value)}
                   required
                 />
                 <Input
-                  label="Panggilanmu di Ruang Ini"
+                  label="Nickname kamu di Space ini"
                   placeholder="Contoh: Raka / Ayang"
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
@@ -228,7 +228,7 @@ export default function OnboardingPage() {
                 >
                   {isSubmitting
                     ? 'Membuat kode unik...'
-                    : 'Buat Ruang & Dapatkan Kode'}
+                    : 'Bikin Space & Dapatkan Kode'}
                 </Button>
               </form>
             )
@@ -242,14 +242,14 @@ export default function OnboardingPage() {
                 onChange={(e) =>
                   setInviteCodeInput(e.target.value.toUpperCase())
                 }
-                helperText={`Masukkan 6 huruf/angka dari pasanganmu (contoh ruang aktif: ${
+                helperText={`Masukkan 6 huruf/angka dari pasanganmu (contoh Space aktif: ${
                   space?.invite_code || 'LOVE24'
                 }).`}
                 className="font-mono uppercase tracking-widest text-lg"
                 required
               />
               <Input
-                label="Panggilanmu di Ruang Ini"
+                label="Nickname kamu di Space ini"
                 placeholder="Contoh: Nadia / Sayang"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
@@ -271,13 +271,13 @@ export default function OnboardingPage() {
                 size="lg"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Memverifikasi kode...' : 'Gabung ke Ruang Pasangan'}
+                {isSubmitting ? 'Memverifikasi kode...' : 'Gabung ke Space Pasangan'}
               </Button>
             </form>
           )}
 
           <div className="border-t border-stone-200 pt-3 dark:border-stone-800 flex items-center justify-between text-xs text-stone-600 dark:text-stone-400">
-            <span>Kapasitas anggota ruang saat ini:</span>
+            <span>Kapasitas anggota Space saat ini:</span>
             <span className="font-semibold text-stone-900 dark:text-stone-200">
               {Math.min(members.length, 2)} / 2 Anggota Pasangan
             </span>

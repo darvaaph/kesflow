@@ -89,7 +89,7 @@ export default function LoginPage() {
             Masuk ke Kesflow
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400">
-            Catatan pengeluaran kencan berdua &amp; pelacak saldo pasangan.
+            Catat pengeluaran date berdua &amp; pantau saldo pasangan.
           </p>
         </div>
 
@@ -102,7 +102,7 @@ export default function LoginPage() {
                 Pilih Akun Pasangan
               </h2>
             </div>
-            <Badge variant="coral">Ruang: LOVE24</Badge>
+            <Badge variant="coral">Space: LOVE24</Badge>
           </div>
           <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
             Pilih masuk sebagai <strong>{rakaProfile.display_name}</strong> atau{' '}
@@ -205,7 +205,7 @@ export default function LoginPage() {
               <p className="font-semibold">Tautan masuk telah dikirim!</p>
               <p className="text-xs">
                 Periksa kotak masuk <strong>{email}</strong> dan ketuk tautan
-                untuk masuk ke ruang kencanmu.
+                untuk masuk ke Space date kamu.
               </p>
               <Button
                 type="button"
@@ -276,7 +276,7 @@ export default function LoginPage() {
               href="/onboarding"
               className="inline-flex min-h-[44px] items-center justify-center text-xs font-semibold text-orange-800 hover:underline dark:text-orange-300"
             >
-              Ingin buat Ruang Kencan baru atau gabung dengan Kode 6 Huruf? Klik di sini
+              Mau bikin Space baru atau gabung pakai kode 6 huruf? Klik di sini
             </Link>
           </div>
         </Card>

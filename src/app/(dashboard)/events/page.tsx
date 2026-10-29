@@ -42,7 +42,7 @@ export default function EventsPage() {
     e.preventDefault();
     setFormError(null);
     if (!title.trim()) {
-      setFormError('Masukkan nama album acara kencan (contoh: Trip Jogja).');
+      setFormError('Masukkan nama momen (contoh: Trip Jogja).');
       return;
     }
 
@@ -53,7 +53,7 @@ export default function EventsPage() {
       setSelectedEventId(created.id);
     } catch (err) {
       setFormError(
-        err instanceof Error ? err.message : 'Gagal membuat album kencan.'
+        err instanceof Error ? err.message : 'Gagal bikin momen.'
       );
     }
   };
@@ -80,7 +80,7 @@ export default function EventsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-lg font-bold text-stone-900 dark:text-stone-100">
-            Album &amp; Acara Kencan
+            Momen Date
           </h1>
           <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
             Kelompokkan pengeluaran per acara spesial (seperti liburan bareng
@@ -96,7 +96,7 @@ export default function EventsPage() {
           onClick={() => setShowNewForm((prev) => !prev)}
         >
           <Plus className="h-4 w-4" />
-          <span>{showNewForm ? 'Tutup Form' : 'Buat Album Kencan'}</span>
+          <span>{showNewForm ? 'Tutup Form' : 'Bikin Momen Baru'}</span>
         </Button>
       </div>
 
@@ -104,21 +104,21 @@ export default function EventsPage() {
       <div className="flex items-start gap-2.5 rounded-xl border border-stone-200/90 bg-stone-100/70 p-3 text-xs text-stone-700 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-300">
         <Info className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400 mt-0.5" />
         <p className="leading-relaxed">
-          <strong>Tips:</strong> Pilih salah satu album di bawah untuk melihat
+          <strong>Tips:</strong> Pilih salah satu momen di bawah untuk melihat
           daftar transaksinya. Jika kalian sedang menjalani acara tersebut hari
           ini, nyalakan tombol <strong>Sedang Berlangsung</strong> agar catatan
-          baru otomatis masuk ke album itu.
+          baru otomatis masuk ke momen itu.
         </p>
       </div>
 
       {showNewForm && (
         <Card elevated className="space-y-4 p-4">
           <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-            Buat Album Acara Kencan Baru
+            Bikin Momen Baru
           </h2>
           <form onSubmit={handleCreateEvent} className="space-y-3" noValidate>
             <Input
-              label="Nama Acara / Trip Kencan"
+              label="Nama Momen / Trip"
               placeholder="Contoh: Liburan Bandung / Anniversary"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -140,7 +140,7 @@ export default function EventsPage() {
               </p>
             )}
             <Button type="submit" fullWidth>
-              Simpan Album Kencan
+              Simpan Momen
             </Button>
           </form>
         </Card>
@@ -150,10 +150,10 @@ export default function EventsPage() {
         <Card className="p-6 text-center space-y-2">
           <CalendarHeart className="mx-auto h-7 w-7 text-orange-700 dark:text-orange-400" />
           <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-            Belum ada album acara kencan
+            Belum ada momen
           </p>
           <p className="text-xs text-stone-600 dark:text-stone-400">
-            Buat album kencan baru di atas untuk mulai mengelompokkan biaya trip
+            Bikin momen baru di atas untuk mulai mengelompokkan biaya trip
             atau acara spesial kalian.
           </p>
         </Card>
@@ -193,7 +193,7 @@ export default function EventsPage() {
 
                   <div className="text-right shrink-0">
                     <p className="text-[11px] font-medium text-stone-600 dark:text-stone-400">
-                      Total Album
+                      Total Momen
                     </p>
                     <p className="text-sm font-extrabold text-stone-900 dark:text-stone-100 tabular-nums whitespace-nowrap">
                       {formatRupiah(stat.amount)}
@@ -246,7 +246,7 @@ export default function EventsPage() {
                         setSelectedEventId(null);
                       }
                     }}
-                    aria-label={`Hapus album ${evt.title}`}
+                    aria-label={`Hapus momen ${evt.title}`}
                     className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-stone-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -282,7 +282,7 @@ export default function EventsPage() {
               onClick={() => setIsAddTxOpen(true)}
             >
               <Plus className="h-4 w-4 text-orange-700 dark:text-orange-400" />
-              <span>Catat di Album Ini</span>
+              <span>Catat di Momen Ini</span>
             </Button>
           </div>
 

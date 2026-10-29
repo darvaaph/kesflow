@@ -38,7 +38,7 @@ export function TransactionList({
       <Card className="p-6 text-center space-y-2" aria-busy="true">
         <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-stone-300 border-t-orange-700" />
         <p className="text-xs font-medium text-stone-600 dark:text-stone-400">
-          Memuat riwayat transaksi kencan kalian...
+          Memuat riwayat date kalian...
         </p>
       </Card>
     );
@@ -74,11 +74,11 @@ export function TransactionList({
         </div>
         <div className="space-y-1">
           <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-            Belum ada catatan pengeluaran kencan
+            Belum ada catatan pengeluaran date
           </p>
           <p className="text-xs text-stone-600 dark:text-stone-400">
             {eventFilterId
-              ? 'Belum ada transaksi yang ditandai pada momen kencan ini. Tambahkan pengeluaran baru untuk mulai melacak biaya momen ini.'
+              ? 'Belum ada transaksi yang ditandai di momen ini. Tambahkan pengeluaran baru untuk mulai melacak biaya momen ini.'
               : 'Ketuk salah satu tombol cepat di atas (seperti Parkir Rp 2.000) atau catat pengeluaran lengkap pertama kalian.'}
           </p>
         </div>

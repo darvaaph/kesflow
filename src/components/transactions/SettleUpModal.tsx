@@ -89,7 +89,7 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
 
     if (numericInputAmount > absAmount) {
       setFormError(
-        `Nominal tidak boleh melebihi total tanggungan (${formatRupiah(absAmount)}).`
+        `Nominal tidak boleh melebihi total utang (${formatRupiah(absAmount)}).`
       );
       return;
     }
@@ -98,8 +98,8 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
     try {
       const defaultNote =
         remainingAfterPay === 0
-          ? 'Pelunasan penuh saldo kencan'
-          : `Cicilan pelunasan (${formatRupiah(clampedPaid)} dari ${formatRupiah(absAmount)})`;
+          ? 'Settle up penuh saldo date'
+          : `Cicilan settle up (${formatRupiah(clampedPaid)} dari ${formatRupiah(absAmount)})`;
 
       await settleUpBalance(notes.trim() || defaultNote, clampedPaid);
       triggerConfetti();
@@ -109,7 +109,7 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
       });
     } catch (err) {
       setFormError(
-        err instanceof Error ? err.message : 'Gagal mencatat pelunasan.'
+        err instanceof Error ? err.message : 'Gagal mencatat settle up.'
       );
     } finally {
       setIsSubmitting(false);
@@ -120,8 +120,8 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
     <BottomSheet
       isOpen={isOpen}
       onClose={onClose}
-      title="Pelunasan Saldo Kencan"
-      description="Lunasi penuh hingga Rp 0 atau catat pembayaran cicilan sebagian."
+      title="Settle Up Saldo"
+      description="Bayar penuh sampai Rp 0 atau catat cicilan sebagian."
     >
       {settledResult ? (
         <div className="space-y-4 py-3 text-center">
@@ -131,19 +131,19 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
           <div className="space-y-1.5">
             <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">
               {settledResult.remaining === 0
-                ? 'Saldo Kalian Sudah Lunas (Rp 0)!'
+                ? 'Saldo Kalian Udah Impas (Rp 0)!'
                 : `Pembayaran ${formatRupiah(settledResult.paid)} Tercatat!`}
             </h3>
             <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
               {settledResult.remaining === 0
-                ? 'Seluruh tanggungan kencan sudah impas tanpa menghapus riwayat belanja.'
-                : `Sisa saldo berjalan yang belum dilunasi sekarang tinggal ${formatRupiah(
+                ? 'Semua tagihan date udah impas, riwayat belanja tetap tersimpan.'
+                : `Sisa yang belum dibayar sekarang tinggal ${formatRupiah(
                     settledResult.remaining
                   )}.`}
             </p>
           </div>
           <Button type="button" fullWidth onClick={onClose}>
-            Kembali ke Beranda
+            Balik ke Home
           </Button>
         </div>
       ) : absAmount === 0 ? (
@@ -156,7 +156,7 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
               Saldo Kalian Sudah Seimbang (Rp 0)
             </h3>
             <p className="text-xs text-stone-600 dark:text-stone-400">
-              Tidak ada tanggungan yang perlu dilunasi saat ini.
+              Nggak ada yang perlu dibayar saat ini.
             </p>
           </div>
           <Button type="button" fullWidth onClick={onClose}>
@@ -167,7 +167,7 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
         <form onSubmit={handleSettle} className="space-y-4" noValidate>
           <div className="rounded-2xl border border-orange-200 bg-orange-50/70 p-4 text-center dark:border-orange-900 dark:bg-orange-950/40 space-y-1">
             <p className="text-xs font-medium text-stone-700 dark:text-stone-300">
-              Total tanggungan <strong>{payerName}</strong> ke{' '}
+              Total utang <strong>{payerName}</strong> ke{' '}
               <strong>{receiverName}</strong> saat ini:
             </p>
             <p className="text-2xl font-extrabold text-orange-900 dark:text-orange-200 tabular-nums whitespace-nowrap">
@@ -177,7 +177,7 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
 
           <div className="space-y-1.5">
             <span className="block text-sm font-medium text-stone-800 dark:text-stone-200">
-              Pilih Metode Pelunasan
+              Pilih Cara Bayar
             </span>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -190,7 +190,7 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
                     : 'border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200'
                 }`}
               >
-                Lunasi Penuh (100%)
+                Bayar Penuh (100%)
               </button>
               <button
                 type="button"
@@ -202,7 +202,7 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
                     : 'border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200'
                 }`}
               >
-                Bayar Sebagian (Cicil)
+                Bayar Sebagian
               </button>
             </div>
           </div>
@@ -261,7 +261,7 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
             </div>
             <div className="flex items-center justify-between border-t border-stone-200 pt-1.5 dark:border-stone-800">
               <span className="text-stone-600 dark:text-stone-400">
-                Sisa tanggungan setelah bayar:
+                Sisa utang setelah bayar:
               </span>
               <span
                 className={`font-extrabold tabular-nums whitespace-nowrap ${
@@ -271,14 +271,14 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
                 }`}
               >
                 {remainingAfterPay === 0
-                  ? 'Rp 0 (Lunas Penuh)'
+                  ? 'Rp 0 (Impas)'
                   : formatRupiah(remainingAfterPay)}
               </span>
             </div>
           </div>
 
           <Input
-            label="Catatan Pelunasan (Opsional)"
+            label="Notes (opsional)"
             placeholder="Contoh: Transfer BCA / QRIS / Tunai"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -303,7 +303,7 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
                 {isSubmitting
                   ? 'Menyimpan...'
                   : remainingAfterPay === 0
-                  ? 'Tandai Lunas'
+                  ? 'Settle Up'
                   : `Bayar ${formatRupiah(clampedPaid)}`}
               </span>
             </Button>

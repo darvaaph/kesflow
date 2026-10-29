@@ -169,7 +169,7 @@ export function AddTransactionDrawer({
       isOpen={isOpen}
       onClose={onClose}
       title={
-        isEditMode ? 'Edit Pengeluaran Kencan' : 'Catat Pengeluaran Kencan'
+        isEditMode ? 'Edit Pengeluaran Date' : 'Catat Pengeluaran Date'
       }
       description={
         isEditMode
@@ -199,7 +199,7 @@ export function AddTransactionDrawer({
 
         <div className="space-y-1.5">
           <span className="block text-sm font-medium text-stone-800 dark:text-stone-200">
-            Kategori Kencan
+            Kategori
           </span>
           <div className="grid grid-cols-2 gap-2">
             {categories.map((cat) => {
@@ -277,7 +277,7 @@ export function AddTransactionDrawer({
             htmlFor="event-select"
             className="block text-sm font-medium text-stone-800 dark:text-stone-200"
           >
-            Album Acara Kencan (Opsional)
+            Momen (opsional)
           </label>
           <select
             id="event-select"
@@ -286,18 +286,18 @@ export function AddTransactionDrawer({
             className="w-full min-h-[44px] rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
           >
             <option value="">
-              Pengeluaran Harian Biasa (Tanpa Album Acara)
+              Harian Biasa (tanpa Momen)
             </option>
             {events.map((evt) => (
               <option key={evt.id} value={evt.id}>
-                Album: {evt.title} {evt.is_active ? '(Sedang Berlangsung)' : ''}
+                Momen: {evt.title} {evt.is_active ? '(Sedang Berlangsung)' : ''}
               </option>
             ))}
           </select>
         </div>
 
         <Input
-          label="Catatan Tambahan (Opsional)"
+          label="Notes (opsional)"
           placeholder="Contoh: Pesan 2 matcha latte + kentang"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}

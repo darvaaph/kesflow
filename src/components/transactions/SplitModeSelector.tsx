@@ -37,7 +37,7 @@ export function SplitModeSelector({
   }[] = [
     {
       id: 'EQUAL_50_50',
-      title: 'Bagi Rata (50:50)',
+      title: 'Split 50:50',
       subtitle:
         totalAmount > 0
           ? `Masing-masing ${formatRupiah(totalAmount / 2)}`
@@ -45,17 +45,17 @@ export function SplitModeSelector({
     },
     {
       id: 'FULL_TREAT',
-      title: '100% Ditraktir',
-      subtitle: `${payerName} mentraktir penuh (saldo hutang tetap Rp 0)`,
+      title: 'Treat 100%',
+      subtitle: `${payerName} treat penuh (saldo tetap Rp 0)`,
     },
     {
       id: 'FULL_OWE',
-      title: 'Ditalangi Penuh',
+      title: 'Talangin Semua',
       subtitle: `${otherName} mengganti 100% ke ${payerName}`,
     },
     {
       id: 'CUSTOM',
-      title: 'Nominal Kustom',
+      title: 'Custom',
       subtitle: 'Atur porsi nominal masing-masing manual',
     },
   ];
@@ -77,7 +77,7 @@ export function SplitModeSelector({
   return (
     <div className="space-y-3">
       <p className="block text-sm font-medium text-stone-800 dark:text-stone-200">
-        Mode Pembagian Biaya
+        Mode Split
       </p>
       <div className="grid grid-cols-2 gap-2">
         {modes.map((m) => {

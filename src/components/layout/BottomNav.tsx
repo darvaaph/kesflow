@@ -22,10 +22,10 @@ export function BottomNav({ onOpenAddTransaction }: BottomNavProps) {
   const { targetPath, startNavigation } = useNavigation();
 
   const navItems = [
-    { href: '/', label: 'Beranda', icon: Home },
-    { href: '/events', label: 'Album', icon: CalendarHeart },
-    { href: '/stats', label: 'Statistik', icon: PieChart },
-    { href: '/settings', label: 'Pengaturan', icon: Settings },
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/events', label: 'Momen', icon: CalendarHeart },
+    { href: '/stats', label: 'Stats', icon: PieChart },
+    { href: '/settings', label: 'Setelan', icon: Settings },
   ];
 
   return (
@@ -66,7 +66,7 @@ export function BottomNav({ onOpenAddTransaction }: BottomNavProps) {
           <button
             type="button"
             onClick={onOpenAddTransaction}
-            aria-label="Catat pengeluaran kencan baru"
+            aria-label="Catat pengeluaran date baru"
             className="inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-2xl bg-orange-700 px-3.5 py-2.5 text-white shadow-warm hover:bg-orange-800 active:bg-orange-900 active:scale-95 transition-all duration-100 dark:bg-orange-600 dark:hover:bg-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2"
           >
             <Plus className="h-6 w-6" />

@@ -40,20 +40,20 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
 
   let friendlyHeadline = 'Saldo kalian seimbang (Rp 0)';
   let friendlySubtext =
-    'Tidak ada tanggungan yang perlu dilunasi saat ini. Siap untuk kencan berikutnya!';
+    'Nggak ada yang perlu dibayar saat ini. Siap buat date berikutnya!';
 
   if (isOwedByPartner) {
-    friendlyHeadline = `${partnerName} berhutang ke kamu ${formatRupiah(
+    friendlyHeadline = `${partnerName} masih utang ke kamu ${formatRupiah(
       netBalanceForCurrentUser
     )}`;
     friendlySubtext = `Kamu (${myName}) sudah menalangi pengeluaran bersama sebesar ${formatRupiah(
       netBalanceForCurrentUser
     )}.`;
   } else if (!isSettled) {
-    friendlyHeadline = `Kamu ditalangi ${partnerName} ${formatRupiah(
+    friendlyHeadline = `Kamu masih utang ke ${partnerName} ${formatRupiah(
       Math.abs(netBalanceForCurrentUser)
     )}`;
-    friendlySubtext = `Yuk lunasi ke ${partnerName} supaya catatan kencan kalian kembali seimbang.`;
+    friendlySubtext = `Yuk bayar ke ${partnerName} biar saldo date kalian impas lagi.`;
   }
 
   const settledDisplay =
@@ -73,14 +73,14 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-700 dark:text-stone-300">
             <Wallet className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400" />
-            <span>Status Saldo Berjalan ({myName})</span>
+            <span>Saldo Kita ({myName})</span>
           </div>
           {isSettled ? (
-            <Badge variant="emerald">Lunas Seimbang</Badge>
+            <Badge variant="emerald">Impas</Badge>
           ) : isOwedByPartner ? (
-            <Badge variant="coral">Menunggu Pelunasan</Badge>
+            <Badge variant="coral">Belum Lunas</Badge>
           ) : (
-            <Badge variant="amber">Perlu Dilunasi</Badge>
+            <Badge variant="amber">Perlu Dibayar</Badge>
           )}
         </div>
 
@@ -102,7 +102,7 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
           <div className="space-y-1.5 rounded-xl border border-stone-200/80 bg-white/90 p-3 text-xs dark:border-stone-800 dark:bg-stone-950/70">
             <div className="flex items-center justify-between gap-3">
               <span className="font-medium text-stone-700 dark:text-stone-300">
-                Total talangan bersih
+                Total talangan (net)
               </span>
               <span className="font-bold text-stone-900 dark:text-stone-100 tabular-nums whitespace-nowrap">
                 {formatRupiah(summary.transactionNet)}
@@ -110,7 +110,7 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="font-medium text-stone-700 dark:text-stone-300">
-                Sudah dilunasi
+                Udah dibayar
               </span>
               <span className="font-bold text-emerald-800 dark:text-emerald-300 tabular-nums whitespace-nowrap">
                 {settledDisplay}
@@ -128,8 +128,8 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
 
           <span className="flex min-h-[44px] items-center justify-between gap-2 text-xs font-semibold text-orange-800 dark:text-orange-300">
             <span>
-              Lihat rincian · {transactions.length} transaksi,{' '}
-              {settlements.length} pelunasan
+              Lihat detail · {transactions.length} transaksi,{' '}
+              {settlements.length} settle up
             </span>
             <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
           </span>
@@ -139,7 +139,7 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
           {isSettled ? (
             <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>Semua tagihan kencan sudah impas!</span>
+              <span>Semua tagihan date udah impas!</span>
             </div>
           ) : (
             <Button
@@ -150,7 +150,7 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
             >
               <HandHeart className="h-4 w-4 shrink-0" />
               <span>
-                Tandai Lunas ({formatRupiah(Math.abs(netBalanceForCurrentUser))})
+                Settle Up ({formatRupiah(Math.abs(netBalanceForCurrentUser))})
               </span>
             </Button>
           )}

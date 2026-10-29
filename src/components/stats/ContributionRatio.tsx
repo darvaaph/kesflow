@@ -29,7 +29,7 @@ export function ContributionRatio({
           Bagaimana perbandingan pembayaran nyata kalian berdua?
         </h2>
         <p className="text-xs text-stone-600 dark:text-stone-400">
-          Menghitung seluruh pembayaran di kasir (termasuk traktir penuh).
+          Menghitung seluruh pembayaran di kasir (termasuk treat penuh).
         </p>
       </div>
 

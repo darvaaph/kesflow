@@ -45,10 +45,10 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { generateInviteCode } from '@/lib/utils';
 
 const SPLIT_LABELS: Record<SplitType, string> = {
-  EQUAL_50_50: 'Bagi 50:50',
-  FULL_TREAT: '100% Traktir',
-  FULL_OWE: 'Ditalangi Penuh',
-  CUSTOM: 'Kustom',
+  EQUAL_50_50: 'Split 50:50',
+  FULL_TREAT: 'Treat 100%',
+  FULL_OWE: 'Talangin Semua',
+  CUSTOM: 'Custom',
 };
 
 interface KesflowStateStorage {
@@ -520,7 +520,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     ): Promise<{ inviteCode: string }> => {
       setError(null);
       const inviteCode = generateInviteCode();
-      const cleanSpaceName = spaceName.trim() || 'Ruang Kencan Kita';
+      const cleanSpaceName = spaceName.trim() || 'Date Kita';
       const cleanNickname =
         nickname.trim() || currentUser?.display_name || 'Raka';
 
@@ -579,7 +579,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (spaceErr || !spaceData) {
-        throw new Error(spaceErr?.message || 'Gagal membuat Couple Space.');
+        throw new Error(spaceErr?.message || 'Gagal bikin Space.');
       }
 
       const { error: memberErr } = await supabase.from('space_members').insert({
@@ -624,7 +624,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         ) {
           if (normalizedCode !== 'LOVE24' && normalizedCode !== 'KISS69') {
             throw new Error(
-              `Kode "${normalizedCode}" tidak ditemukan. Gunakan kode ruang pasanganmu (${state.space.invite_code}).`
+              `Kode "${normalizedCode}" tidak ditemukan. Gunakan kode Space pasanganmu (${state.space.invite_code}).`
             );
           }
         }
@@ -634,7 +634,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           );
           if (!isAlreadyMember) {
             throw new Error(
-              'Ruang kencan ini sudah penuh (maksimal 2 anggota untuk pasangan).'
+              'Space ini sudah penuh (maksimal 2 anggota untuk pasangan).'
             );
           }
         }
@@ -678,7 +678,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
 
       if ((count ?? 0) >= 2) {
         throw new Error(
-          'Couple Space ini sudah penuh (maksimal hanya 2 orang per ruang).'
+          'Space ini sudah penuh (maksimal 2 orang per Space).'
         );
       }
 
@@ -890,11 +890,11 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         if ((existing.event_id ?? null) !== (input.event_id ?? null)) {
           const oldEvt =
             state.events.find((e) => e.id === existing.event_id)?.title ||
-            'Tanpa Album';
+            'Tanpa Momen';
           const newEvt =
             state.events.find((e) => e.id === input.event_id)?.title ||
-            'Tanpa Album';
-          changes.push(`Album: ${oldEvt} -> ${newEvt}`);
+            'Tanpa Momen';
+          changes.push(`Momen: ${oldEvt} -> ${newEvt}`);
         }
         if (existing.category_id !== input.category_id) {
           const oldCat =
@@ -1066,7 +1066,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           : maxAmount;
 
       if (amount <= 0) {
-        throw new Error('Nominal pelunasan harus lebih besar dari Rp 0.');
+        throw new Error('Nominal settle up harus lebih besar dari Rp 0.');
       }
 
       const fromUserId = netA > 0 ? userBId : userAId;
@@ -1076,8 +1076,8 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       const isPartial = amount < maxAmount;
       const remaining = Math.max(0, maxAmount - amount);
       const defaultNote = isPartial
-        ? 'Cicilan pelunasan saldo kencan'
-        : 'Pelunasan penuh saldo kencan';
+        ? 'Cicilan settle up saldo date'
+        : 'Settle up penuh saldo date';
       const actorId = currentUser?.id ?? userAId;
       const actorName = currentUser?.display_name || 'Raka';
       const fromName = getProfileName(fromUserId);
@@ -1102,11 +1102,11 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           action_type: 'SETTLEMENT_ADDED',
           target_id: newSettlement.id,
           title: isPartial
-            ? `Cicilan Pelunasan (${fromName} -> ${toName})`
-            : `Pelunasan Penuh (${fromName} -> ${toName})`,
+            ? `Cicilan Settle Up (${fromName} -> ${toName})`
+            : `Settle Up Penuh (${fromName} -> ${toName})`,
           description: isPartial
             ? `${fromName} membayar cicilan ${formatRupiah(amount)} ke ${toName}. Sisa saldo: ${formatRupiah(remaining)}`
-            : `${fromName} melunasi penuh ${formatRupiah(amount)} ke ${toName}. Saldo kembali Rp 0`,
+            : `${fromName} bayar penuh ${formatRupiah(amount)} ke ${toName}. Saldo kembali Rp 0`,
           amount,
           created_at: nowIso,
         };
@@ -1136,7 +1136,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (stErr || !data) {
-        throw new Error(stErr?.message || 'Gagal mencatat pelunasan.');
+        throw new Error(stErr?.message || 'Gagal mencatat settle up.');
       }
 
       await fetchSupabaseData();
@@ -1160,7 +1160,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const cleanTitle = title.trim();
       if (!cleanTitle) {
-        throw new Error('Nama album acara kencan wajib diisi.');
+        throw new Error('Nama momen wajib diisi.');
       }
       const spaceId = state.space?.id ?? DEMO_SPACE_ID;
       const nowIso = new Date().toISOString();
@@ -1196,7 +1196,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (evErr || !data) {
-        throw new Error(evErr?.message || 'Gagal membuat album kencan.');
+        throw new Error(evErr?.message || 'Gagal bikin momen.');
       }
 
       await fetchSupabaseData();

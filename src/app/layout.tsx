@@ -11,9 +11,9 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Kesflow | Catatan Pengeluaran Kencan Pasangan',
+  title: 'Kesflow | Catat Pengeluaran Date Berdua',
   description:
-    'Aplikasi Web Progresif (PWA) pengelola pengeluaran kencan dan saldo berjalan khusus pasangan berdua.',
+    'Aplikasi PWA buat catat pengeluaran date dan pantau saldo, khusus pasangan berdua.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
