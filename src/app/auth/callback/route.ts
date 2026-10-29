@@ -6,6 +6,15 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/';
 
+  // Pastikan origin menggunakan domain asli di Vercel/reverse proxy
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const isLocalEnv = process.env.NODE_ENV === 'development';
+  const baseOrigin = isLocalEnv
+    ? origin
+    : forwardedHost
+    ? `https://${forwardedHost}`
+    : origin;
+
   if (code) {
     const supabase = createServerSupabaseClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -24,14 +33,13 @@ export async function GET(request: Request) {
 
         const target =
           memberRows && memberRows.length > 0 ? next : '/onboarding';
-        return NextResponse.redirect(`${origin}${target}`);
+        return NextResponse.redirect(`${baseOrigin}${target}`);
       }
 
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(`${baseOrigin}${next}`);
     }
   }
 
   // Redirect ke halaman login dengan query error jika autentikasi gagal
-  return NextResponse.redirect(`${origin}/login?error=auth-failed`);
+  return NextResponse.redirect(`${baseOrigin}/login?error=auth-failed`);
 }
-

@@ -25,10 +25,21 @@ export default function LoginPage() {
     currentUser,
     profiles,
     isMockMode,
+    isLoading,
+    isAuthenticated,
+    space,
   } = useKesflow();
 
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Jika sudah terautentikasi (misal setelah popup/redirect Google selesai),
+  // otomatis arahkan ke dashboard atau onboarding tanpa perlu refresh manual.
+  React.useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace(space ? '/' : '/onboarding');
+    }
+  }, [isLoading, isAuthenticated, space, router]);
 
   const rakaProfile = profiles.find((p) => p.id === USER_RAKA_ID) || {
     id: USER_RAKA_ID,
