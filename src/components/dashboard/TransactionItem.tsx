@@ -4,12 +4,14 @@ import React, { useMemo, useState } from 'react';
 import {
   History,
   Image as ImageIcon,
+  ListChecks,
   Pencil,
   Trash2,
 } from 'lucide-react';
 import { Category, DateEvent, Profile, Transaction } from '@/types';
 import { useKesflow } from '@/context/KesflowContext';
 import { formatRelativeDate, formatRupiah } from '@/lib/format';
+import { parseTransactionNotes } from '@/lib/itemizedBill';
 import { Badge } from '@/components/ui/Badge';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -43,9 +45,15 @@ export function TransactionItem({
   const myId = currentUser?.id ?? userAId;
   const myName = currentUser?.display_name || 'Kamu';
   const partnerName = partnerUser?.display_name || 'Pasangan';
+  const isMeUserA = myId === userAId;
 
   const paidByMe = transaction.payer_id === myId;
   const payerLabel = paidByMe ? `${myName} (Kamu)` : partnerName;
+
+  const parsedNotes = useMemo(
+    () => parseTransactionNotes(transaction.notes),
+    [transaction.notes]
+  );
 
   const txLogs = useMemo(
     () => activityLogs.filter((l) => l.target_id === transaction.id),
@@ -151,6 +159,15 @@ export function TransactionItem({
                 <span className="font-medium text-stone-600 dark:text-stone-300">
                   {getSplitLabel()}
                 </span>
+                {parsedNotes.itemized && (
+                  <>
+                    <span aria-hidden="true">&middot;</span>
+                    <span className="inline-flex items-center gap-0.5 font-semibold text-orange-700 dark:text-orange-400">
+                      <ListChecks className="h-3 w-3" />
+                      {parsedNotes.itemized.items.length} menu
+                    </span>
+                  </>
+                )}
                 {event && (
                   <>
                     <span aria-hidden="true">&middot;</span>
@@ -253,17 +270,68 @@ export function TransactionItem({
                 {formatRupiah(Number(transaction.user_b_share))}
               </span>
             </div>
-            {transaction.notes && (
+            {parsedNotes.plainNotes && (
               <div className="border-t border-stone-200 pt-2 dark:border-stone-800">
                 <p className="text-xs text-stone-600 dark:text-stone-400">
                   Catatan:
                 </p>
                 <p className="text-xs font-medium text-stone-900 dark:text-stone-100">
-                  {transaction.notes}
+                  {parsedNotes.plainNotes}
                 </p>
               </div>
             )}
           </div>
+
+          {parsedNotes.itemized && (
+            <div className="rounded-xl border border-orange-200/80 bg-orange-50/40 p-3.5 dark:border-stone-800 dark:bg-stone-900/60 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <ListChecks className="h-4 w-4 text-orange-700 dark:text-orange-400" />
+                  <p className="text-xs font-bold text-stone-900 dark:text-stone-100">
+                    Rincian Menu Pesanan ({parsedNotes.itemized.items.length})
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                {parsedNotes.itemized.items.map((item) => {
+                  const assigneeLabel =
+                    item.assignedTo === 'BOTH'
+                      ? 'Bareng 50:50'
+                      : (item.assignedTo === 'A' && isMeUserA) ||
+                        (item.assignedTo === 'B' && !isMeUserA)
+                      ? `${myName} (Kamu)`
+                      : partnerName;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-stone-200/80 bg-white px-3 py-2 text-xs dark:border-stone-800 dark:bg-stone-950"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold text-stone-900 dark:text-stone-100 truncate">
+                          {item.name}
+                        </p>
+                        <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                          Porsi: {assigneeLabel}
+                        </p>
+                      </div>
+                      <span className="shrink-0 font-bold tabular-nums text-stone-900 dark:text-stone-100">
+                        {formatRupiah(item.price)}
+                      </span>
+                    </div>
+                  );
+                })}
+                {parsedNotes.itemized.extraFee > 0 && (
+                  <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-stone-300 px-3 py-1.5 text-xs text-stone-600 dark:border-stone-700 dark:text-stone-400">
+                    <span>Pajak / Service / Ongkir (Proporsional)</span>
+                    <span className="font-bold tabular-nums">
+                      {formatRupiah(parsedNotes.itemized.extraFee)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {txLogs.length > 0 && (
             <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3.5 dark:border-stone-800 dark:bg-stone-900/60 space-y-2">

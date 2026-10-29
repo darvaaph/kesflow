@@ -364,16 +364,33 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           .order('created_at', { ascending: true }),
       ]);
 
-      const memberUserIds = (membersRes.data ?? []).map((m) => m.user_id);
+      const memberRows = membersRes.data ?? [];
+      const memberUserIds = memberRows.map((m) => m.user_id);
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('*')
         .in('id', memberUserIds.length > 0 ? memberUserIds : [user.id]);
 
+      // Gabungkan profil dari database profiles dengan fallback nickname dari space_members
+      // Menjamin nama pasangan selalu muncul meskipun RLS profiles di Supabase belum diperbarui
+      const mergedProfiles: Profile[] = [...(profilesData ?? [])];
+      for (const m of memberRows) {
+        if (!mergedProfiles.some((p) => p.id === m.user_id)) {
+          mergedProfiles.push({
+            id: m.user_id,
+            email: '',
+            display_name: m.nickname || 'Pasangan',
+            avatar_url: null,
+            created_at: m.joined_at,
+            updated_at: m.joined_at,
+          });
+        }
+      }
+
       setState((prev) => ({
         space: spaceRes.data ?? null,
-        members: membersRes.data ?? [],
-        profiles: profilesData ?? [],
+        members: memberRows,
+        profiles: mergedProfiles,
         categories:
           categoriesRes.data && categoriesRes.data.length > 0
             ? categoriesRes.data
@@ -534,18 +551,43 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
   }, [state.members]);
 
   const currentUser = useMemo<Profile | null>(() => {
-    const found = state.profiles.find((p) => p.id === activeUserId);
+    const currentId = activeUserId;
+    const found = state.profiles.find((p) => p.id === currentId);
     if (found) return found;
+
+    const myMember = state.members.find((m) => m.user_id === currentId);
+    if (myMember) {
+      return {
+        id: myMember.user_id,
+        email: '',
+        display_name: myMember.nickname || 'Kamu',
+        avatar_url: null,
+        created_at: myMember.joined_at,
+        updated_at: myMember.joined_at,
+      };
+    }
+
     return state.profiles[0] ?? null;
-  }, [state.profiles, activeUserId]);
+  }, [state.profiles, state.members, activeUserId]);
 
   const partnerUser = useMemo<Profile | null>(() => {
     if (!state.space || state.members.length < 2) return null;
-    const found = state.profiles.find(
-      (p) => p.id !== (currentUser?.id ?? activeUserId)
-    );
-    return found ?? null;
-  }, [state.space, state.members.length, state.profiles, currentUser, activeUserId]);
+    const currentId = currentUser?.id ?? activeUserId;
+    const partnerMember = state.members.find((m) => m.user_id !== currentId);
+    if (!partnerMember) return null;
+
+    const found = state.profiles.find((p) => p.id === partnerMember.user_id);
+    if (found) return found;
+
+    return {
+      id: partnerMember.user_id,
+      email: '',
+      display_name: partnerMember.nickname || 'Pasangan',
+      avatar_url: null,
+      created_at: partnerMember.joined_at,
+      updated_at: partnerMember.joined_at,
+    };
+  }, [state.space, state.members, state.profiles, currentUser, activeUserId]);
 
   useEffect(() => {
     if (isMockMode || !state.space?.id) return;
@@ -620,6 +662,18 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           event: '*',
           schema: 'public',
           table: 'quick_presets',
+          filter: `space_id=eq.${spaceId}`,
+        },
+        () => {
+          fetchSupabaseData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'space_members',
           filter: `space_id=eq.${spaceId}`,
         },
         () => {

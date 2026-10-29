@@ -169,8 +169,8 @@ end;
 $$ language plpgsql security definer;
 
 -- 1. Profiles Policies
-create policy "Users can view own profile" on public.profiles
-  for select using (auth.uid() = id);
+create policy "Authenticated users can view profiles" on public.profiles
+  for select using (auth.role() = 'authenticated');
 
 create policy "Users can update own profile" on public.profiles
   for update using (auth.uid() = id);

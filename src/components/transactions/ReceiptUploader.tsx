@@ -58,6 +58,39 @@ async function compressImageFile(
   });
 }
 
+export async function uploadAndCompressReceipt(
+  file: File,
+  spaceId: string
+): Promise<{ storedUrl: string; dataUrl: string }> {
+  const { blob, dataUrl } = await compressImageFile(file);
+
+  if (!isSupabaseConfigured()) {
+    return { storedUrl: dataUrl, dataUrl };
+  }
+
+  const supabase = createClient();
+  const filePath = `${spaceId}/${Date.now()}-receipt.jpg`;
+  const { error } = await supabase.storage
+    .from('receipts')
+    .upload(filePath, blob, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    });
+
+  if (error) {
+    return { storedUrl: dataUrl, dataUrl };
+  }
+
+  const { data: signedData } = await supabase.storage
+    .from('receipts')
+    .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+
+  return {
+    storedUrl: signedData?.signedUrl || dataUrl,
+    dataUrl,
+  };
+}
+
 export function ReceiptUploader({
   receiptUrl,
   onChange,
@@ -76,33 +109,8 @@ export function ReceiptUploader({
     setIsUploading(true);
 
     try {
-      const { blob, dataUrl } = await compressImageFile(file);
-
-      if (!isSupabaseConfigured()) {
-        onChange(dataUrl);
-        return;
-      }
-
-      const supabase = createClient();
-      const filePath = `${spaceId}/${Date.now()}-receipt.jpg`;
-      const { error } = await supabase.storage
-        .from('receipts')
-        .upload(filePath, blob, {
-          contentType: 'image/jpeg',
-          upsert: false,
-        });
-
-      if (error) {
-        // Fallback ke pratinjau lokal terkompresi jika bucket belum siap
-        onChange(dataUrl);
-        return;
-      }
-
-      const { data: signedData } = await supabase.storage
-        .from('receipts')
-        .createSignedUrl(filePath, 60 * 60 * 24 * 365);
-
-      onChange(signedData?.signedUrl || dataUrl);
+      const { storedUrl } = await uploadAndCompressReceipt(file, spaceId);
+      onChange(storedUrl);
     } catch (err) {
       setUploadError(
         err instanceof Error ? err.message : 'Gagal mengunggah foto struk.'
