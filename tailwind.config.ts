@@ -34,6 +34,24 @@ const config: Config = {
       boxShadow: {
         warm: '0 4px 20px -2px rgba(28, 25, 23, 0.06)',
       },
+      keyframes: {
+        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'fade-out': { from: { opacity: '1' }, to: { opacity: '0' } },
+        'sheet-up': {
+          from: { transform: 'translateY(100%)' },
+          to: { transform: 'translateY(0)' },
+        },
+        'sheet-down': {
+          from: { transform: 'translateY(0)' },
+          to: { transform: 'translateY(100%)' },
+        },
+      },
+      animation: {
+        'fade-in': 'fade-in 200ms ease-out',
+        'fade-out': 'fade-out 200ms ease-in forwards',
+        'sheet-up': 'sheet-up 300ms cubic-bezier(0.32, 0.72, 0, 1)',
+        'sheet-down': 'sheet-down 200ms ease-in forwards',
+      },
     },
   },
   plugins: [],

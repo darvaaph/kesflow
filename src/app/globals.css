@@ -38,3 +38,18 @@ body {
 .bottom-nav-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0.6;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.12s ease-out forwards;
+}

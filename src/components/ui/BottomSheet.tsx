@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,7 +36,19 @@ export function BottomSheet({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  // Keep mounted until the exit animation (200ms) finishes.
+  const [mounted, setMounted] = useState(isOpen);
+  useEffect(() => {
+    if (isOpen) {
+      setMounted(true);
+      return;
+    }
+    const t = setTimeout(() => setMounted(false), 200);
+    return () => clearTimeout(t);
+  }, [isOpen]);
+
+  if (!isOpen && !mounted) return null;
+  const closing = !isOpen;
 
   return (
     <div
@@ -46,13 +58,17 @@ export function BottomSheet({
       aria-labelledby="bottom-sheet-title"
     >
       <div
-        className="fixed inset-0 bg-stone-950/50 transition-opacity"
+        className={cn(
+          'fixed inset-0 bg-stone-950/50',
+          closing ? 'motion-safe:animate-fade-out' : 'motion-safe:animate-fade-in'
+        )}
         onClick={onClose}
         aria-hidden="true"
       />
       <div
         className={cn(
-          'relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-warm-bg dark:bg-stone-900 border-t sm:border border-stone-200 dark:border-stone-800 p-5 pb-safe shadow-warm transition-transform',
+          'relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-warm-bg dark:bg-stone-900 border-t sm:border border-stone-200 dark:border-stone-800 p-5 pb-safe shadow-warm sm:animate-none',
+          closing ? 'motion-safe:animate-sheet-down' : 'motion-safe:animate-sheet-up',
           className
         )}
       >
