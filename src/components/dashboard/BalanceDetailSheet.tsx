@@ -108,7 +108,7 @@ export function BalanceDetailSheet({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <dt className="font-medium text-stone-800 dark:text-stone-200">
-                  Total talangan (net)
+                  Total ditalangi
                 </dt>
                 {summary.offsetOwed > 0 && (
                   <p className="mt-0.5 text-xs leading-relaxed text-stone-600 dark:text-stone-400">

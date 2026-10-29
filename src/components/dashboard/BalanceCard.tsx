@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { CheckCircle2, ChevronRight, HandHeart, Wallet } from 'lucide-react';
+import { Check, CheckCircle2, ChevronRight, Copy, HandHeart, Wallet } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { formatRupiah } from '@/lib/format';
 import { buildDebtSummary } from '@/lib/balanceView';
@@ -16,6 +16,7 @@ export interface BalanceCardProps {
 
 export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
   const {
+    space,
     balanceBreakdownForA,
     netBalanceForCurrentUser,
     transactions,
@@ -25,6 +26,18 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
     userAId,
   } = useKesflow();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyCode = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(space?.invite_code || '');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore clipboard error
+    }
+  };
 
   const myName = currentUser?.display_name || 'Kamu';
   const partnerName = partnerUser?.display_name || 'Pasangan';
@@ -79,7 +92,9 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
             <Wallet className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400" />
             <span>Saldo Kita ({myName})</span>
           </div>
-          {isSettled ? (
+          {transactions.length === 0 ? (
+            <Badge variant="neutral">Belum Ada Bill</Badge>
+          ) : isSettled ? (
             <Badge variant="emerald">Impas</Badge>
           ) : isOwedByPartner ? (
             <Badge variant="coral">Belum Lunas</Badge>
@@ -103,40 +118,76 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
             </p>
           </div>
 
-          <div className="space-y-1.5 rounded-xl border border-stone-200/80 bg-white/90 p-3 text-xs dark:border-stone-800 dark:bg-stone-950/70">
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-medium text-stone-700 dark:text-stone-300">
-                Total talangan (net)
-              </span>
-              <span className="font-bold text-stone-900 dark:text-stone-100 tabular-nums whitespace-nowrap">
-                {formatRupiah(summary.transactionNet)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-medium text-stone-700 dark:text-stone-300">
-                Udah dibayar
-              </span>
-              <span className="font-bold text-emerald-800 dark:text-emerald-300 tabular-nums whitespace-nowrap">
-                {settledDisplay}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-t border-stone-200 pt-1.5 dark:border-stone-800">
-              <span className="font-bold text-stone-900 dark:text-stone-100">
-                Sisa
-              </span>
-              <span className="text-sm font-extrabold text-orange-900 dark:text-orange-200 tabular-nums whitespace-nowrap">
-                {formatRupiah(summary.remaining)}
-              </span>
-            </div>
-          </div>
+          {transactions.length > 0 ? (
+            <>
+              <div className="space-y-1.5 rounded-xl border border-stone-200/80 bg-white/90 p-3 text-xs dark:border-stone-800 dark:bg-stone-950/70">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium text-stone-700 dark:text-stone-300">
+                    Total ditalangi
+                  </span>
+                  <span className="font-bold text-stone-900 dark:text-stone-100 tabular-nums whitespace-nowrap">
+                    {formatRupiah(summary.transactionNet)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium text-stone-700 dark:text-stone-300">
+                    Udah dibayar
+                  </span>
+                  <span className="font-bold text-emerald-800 dark:text-emerald-300 tabular-nums whitespace-nowrap">
+                    {settledDisplay}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-stone-200 pt-1.5 dark:border-stone-800">
+                  <span className="font-bold text-stone-900 dark:text-stone-100">
+                    Sisa
+                  </span>
+                  <span className="text-sm font-extrabold text-orange-900 dark:text-orange-200 tabular-nums whitespace-nowrap">
+                    {formatRupiah(summary.remaining)}
+                  </span>
+                </div>
+              </div>
 
-          <span className="flex min-h-[44px] items-center justify-between gap-2 text-xs font-semibold text-orange-800 dark:text-orange-300">
-            <span>
-              Lihat detail · {transactions.length} transaksi,{' '}
-              {settlements.length} settle up
-            </span>
-            <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-          </span>
+              <span className="flex min-h-[44px] items-center justify-between gap-2 text-xs font-semibold text-orange-800 dark:text-orange-300">
+                <span>
+                  Lihat detail · {transactions.length} transaksi,{' '}
+                  {settlements.length} settle up
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+              </span>
+            </>
+          ) : !partnerUser ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-orange-200/90 bg-white/90 p-3 text-xs dark:border-stone-800 dark:bg-stone-950/80">
+              <div className="space-y-0.5 min-w-0">
+                <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                  Kode Pasangan:
+                </p>
+                <p className="font-mono text-base font-extrabold tracking-wider text-orange-800 dark:text-orange-400">
+                  {space?.invite_code || 'LOVE75'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-semibold text-stone-800 hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 transition-colors"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Tersalin!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>Salin Kode</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-stone-300/80 bg-white/60 p-3 text-center text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-950/40 dark:text-stone-400">
+              Belum ada pengeluaran date. Catat bill pertama kalian pakai tombol <strong>+</strong> di bawah!
+            </div>
+          )}
         </button>
 
         <div className="flex items-center justify-between gap-3">

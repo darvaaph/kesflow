@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Bell, Heart, Moon, Sun, UserPlus, Wifi, WifiOff } from 'lucide-react';
+import { Bell, Heart, Moon, Sun, UserPlus, WifiOff } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { Avatar } from '@/components/ui/Avatar';
 import { ActivityMutationSheet } from '@/components/transactions/ActivityMutationSheet';
