@@ -94,6 +94,7 @@ interface KesflowContextValue {
     displayName?: string,
     pin?: string
   ) => Promise<{ isInstantLogin: boolean }>;
+  loginWithGoogle: () => Promise<void>;
   loginAsAccount: (userId: string) => void;
   logout: () => Promise<void>;
   switchDemoActiveUser: (userId: string) => void;
@@ -605,6 +606,35 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       fetchSupabaseData,
     ]
   );
+
+  const loginWithGoogle = useCallback(async () => {
+    setError(null);
+    if (isMockMode) {
+      switchDemoActiveUser(DEMO_USER_A_ID);
+      return;
+    }
+
+    const supabase = createClient();
+    const redirectTo =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : '/auth/callback';
+
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
+
+    if (oauthError) {
+      throw new Error(oauthError.message);
+    }
+  }, [isMockMode, switchDemoActiveUser]);
 
   const logout = useCallback(async () => {
     setIsAuthenticated(false);
@@ -1578,6 +1608,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     netBalanceForCurrentUser,
     balanceBreakdownForA,
     loginWithEmailOrPin,
+    loginWithGoogle,
     loginAsAccount,
     logout,
     switchDemoActiveUser,
