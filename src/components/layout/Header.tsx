@@ -5,6 +5,7 @@ import { Bell, Heart, Moon, Sun, UserPlus, Wifi, WifiOff } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { Avatar } from '@/components/ui/Avatar';
 import { ActivityMutationSheet } from '@/components/transactions/ActivityMutationSheet';
+import { cn } from '@/lib/utils';
 
 export function Header() {
   const {
@@ -47,7 +48,7 @@ export function Header() {
     <header className="sticky top-0 z-30 border-b border-stone-200/90 bg-warm-bg/95 backdrop-blur-sm dark:border-stone-800 dark:bg-stone-950/95 pt-safe">
       <div className="mx-auto flex max-w-md sm:max-w-lg md:max-w-xl items-center justify-between gap-3 px-4 py-2.5">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="flex -space-x-2 shrink-0">
+          <div className="relative flex -space-x-2 shrink-0">
             <Avatar name={myName} size="sm" tone="coral" />
             {partnerName ? (
               <Avatar name={partnerName} size="sm" tone="stone" />
@@ -59,6 +60,16 @@ export function Header() {
                 <UserPlus className="h-3.5 w-3.5" />
               </div>
             )}
+            {/* Status dot indicator: Hijau saat online/synced, Amber berkedip jika luring */}
+            <span
+              title={isRealtimeConnected ? 'Terhubung (Online)' : 'Sedang Luring (Offline)'}
+              className={cn(
+                'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-warm-bg dark:ring-stone-950',
+                isRealtimeConnected
+                  ? 'bg-emerald-500'
+                  : 'bg-amber-500 animate-pulse'
+              )}
+            />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -78,24 +89,15 @@ export function Header() {
                   Kode: {space?.invite_code || '...'}
                 </span>
               )}
-              <span aria-hidden="true">&middot;</span>
-              <span className="inline-flex items-center gap-1">
-                {isRealtimeConnected ? (
-                  <>
-                    <Wifi className="h-3 w-3 text-emerald-700 dark:text-emerald-400" />
-                    <span className="text-emerald-800 dark:text-emerald-300 font-medium">
-                      Synced
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff className="h-3 w-3 text-amber-700 dark:text-amber-400" />
-                    <span className="text-amber-800 dark:text-amber-300 font-medium">
-                      Luring
-                    </span>
-                  </>
-                )}
-              </span>
+              {!isRealtimeConnected && (
+                <>
+                  <span aria-hidden="true">&middot;</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                    <WifiOff className="h-3 w-3" />
+                    <span>Luring</span>
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
