@@ -37,6 +37,14 @@ const config: Config = {
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
         'fade-out': { from: { opacity: '1' }, to: { opacity: '0' } },
+        'modal-in': {
+          from: { opacity: '0', transform: 'scale(0.96)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
+        'modal-out': {
+          from: { opacity: '1', transform: 'scale(1)' },
+          to: { opacity: '0', transform: 'scale(0.96)' },
+        },
         'sheet-up': {
           from: { transform: 'translateY(100%)' },
           to: { transform: 'translateY(0)' },
@@ -47,10 +55,12 @@ const config: Config = {
         },
       },
       animation: {
-        'fade-in': 'fade-in 450ms cubic-bezier(0.16, 1, 0.3, 1)',
-        'fade-out': 'fade-out 350ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
-        'sheet-up': 'sheet-up 450ms cubic-bezier(0.16, 1, 0.3, 1)',
-        'sheet-down': 'sheet-down 350ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
+        'fade-in': 'fade-in 250ms ease-out',
+        'fade-out': 'fade-out 180ms ease-in forwards',
+        'modal-in': 'modal-in 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'modal-out': 'modal-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards',
+        'sheet-up': 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'sheet-down': 'sheet-down 180ms cubic-bezier(0.4, 0, 1, 1) forwards',
       },
     },
   },

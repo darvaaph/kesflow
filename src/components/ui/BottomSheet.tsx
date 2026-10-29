@@ -37,16 +37,19 @@ export function BottomSheet({
     };
   }, [isOpen, onClose]);
 
-  // Keep mounted until the exit animation (350ms) finishes.
+  // Keep mounted until the exit animation (180ms) finishes.
   const [mounted, setMounted] = useState(isOpen);
+  const [cachedChildren, setCachedChildren] = useState(children);
+
   useEffect(() => {
     if (isOpen) {
       setMounted(true);
+      setCachedChildren(children);
       return;
     }
-    const t = setTimeout(() => setMounted(false), 350);
+    const t = setTimeout(() => setMounted(false), 180);
     return () => clearTimeout(t);
-  }, [isOpen]);
+  }, [isOpen, children]);
 
   if ((!isOpen && !mounted) || typeof document === 'undefined') return null;
   const closing = !isOpen;
@@ -69,8 +72,10 @@ export function BottomSheet({
       />
       <div
         className={cn(
-          'relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-warm-bg dark:bg-stone-900 border-t sm:border border-stone-200 dark:border-stone-800 p-5 pb-safe shadow-warm will-change-transform sm:animate-none',
-          closing ? 'motion-safe:animate-sheet-down' : 'motion-safe:animate-sheet-up',
+          'relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-warm-bg dark:bg-stone-900 border-t sm:border border-stone-200 dark:border-stone-800 p-5 pb-safe shadow-warm will-change-transform',
+          closing
+            ? 'motion-safe:animate-sheet-down sm:motion-safe:animate-modal-out'
+            : 'motion-safe:animate-sheet-up sm:motion-safe:animate-modal-in',
           className
         )}
       >
@@ -98,7 +103,7 @@ export function BottomSheet({
             <X className="h-5 w-5" />
           </button>
         </div>
-        {children}
+        {isOpen ? children : cachedChildren}
       </div>
     </div>,
     document.body

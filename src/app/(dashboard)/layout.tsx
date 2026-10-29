@@ -52,7 +52,10 @@ function DashboardLayoutContent({
           </div>
         )}
       </main>
-      <BottomNav onOpenAddTransaction={() => setIsAddDrawerOpen(true)} />
+      <BottomNav
+        onOpenAddTransaction={() => setIsAddDrawerOpen(true)}
+        isAddOpen={isAddDrawerOpen}
+      />
       <AddTransactionDrawer
         isOpen={isAddDrawerOpen}
         onClose={() => setIsAddDrawerOpen(false)}

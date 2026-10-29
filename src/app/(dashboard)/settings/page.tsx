@@ -265,7 +265,7 @@ export default function SettingsPage() {
           nyicil Settle Up saldo.
         </p>
 
-        {activityLogs.length > 0 && (
+        {activityLogs.length > 0 ? (
           <div className="space-y-2">
             {activityLogs.slice(0, 3).map((log) => (
               <div
@@ -285,6 +285,10 @@ export default function SettingsPage() {
                 </p>
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-stone-200 p-4 text-center text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400">
+            Belum ada aktivitas di ruang kencan ini. Catat pengeluaran date pertama kalian!
           </div>
         )}
 

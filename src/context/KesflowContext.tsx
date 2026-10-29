@@ -137,7 +137,20 @@ const CHANNEL_NAME = 'kesflow_realtime_channel_v2';
 
 const KesflowContext = createContext<KesflowContextValue | undefined>(undefined);
 
-function getInitialStorage(): KesflowStateStorage {
+function getInitialStorage(isMock: boolean = true): KesflowStateStorage {
+  if (!isMock) {
+    return {
+      space: null,
+      members: [],
+      profiles: [],
+      categories: DEFAULT_CATEGORIES,
+      events: [],
+      transactions: [],
+      settlements: [],
+      activityLogs: [],
+      quickPresets: QUICK_PRESETS,
+    };
+  }
   return {
     space: INITIAL_DEMO_SPACE,
     members: INITIAL_DEMO_MEMBERS,
@@ -159,7 +172,9 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
   const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(false);
 
   const [activeUserId, setActiveUserId] = useState<string>(DEMO_USER_A_ID);
-  const [state, setState] = useState<KesflowStateStorage>(getInitialStorage);
+  const [state, setState] = useState<KesflowStateStorage>(() =>
+    getInitialStorage(isMockMode)
+  );
 
   const broadcastLocalState = useCallback((nextState: KesflowStateStorage) => {
     if (typeof window === 'undefined') return;
@@ -288,7 +303,9 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         events: eventsRes.data ?? [],
         transactions: txRes.data ?? [],
         settlements: settlementsRes.data ?? [],
-        activityLogs: prev.activityLogs ?? [],
+        activityLogs: (prev.activityLogs ?? []).filter(
+          (l) => l.space_id === spaceId
+        ),
         quickPresets:
           presetsRes.data && presetsRes.data.length > 0
             ? presetsRes.data.map(
@@ -1772,6 +1789,68 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const computedActivityLogs = useMemo<ActivityLogItem[]>(() => {
+    if (!state.space) return [];
+    const currentSpaceId = state.space.id;
+
+    // 1. Log otomatis dari transaksi nyata di space ini
+    const txLogs: ActivityLogItem[] = state.transactions.map((tx) => {
+      const payer = state.profiles.find((p) => p.id === tx.payer_id);
+      const payerName = payer?.display_name || 'Pasangan';
+      return {
+        id: `tx-log-${tx.id}`,
+        space_id: tx.space_id,
+        actor_id: tx.payer_id,
+        actor_name: payerName,
+        action_type: 'TX_CREATED',
+        target_id: tx.id,
+        title: tx.title,
+        description: `Mencatat pengeluaran baru ${formatRupiah(Number(tx.amount))} (Dibayar ${payerName} · ${SPLIT_LABELS[tx.split_type] || 'Split'})`,
+        amount: Number(tx.amount),
+        created_at: tx.spent_at || tx.created_at,
+      };
+    });
+
+    // 2. Log otomatis dari settlement pelunasan hutang di space ini
+    const stLogs: ActivityLogItem[] = state.settlements.map((st) => {
+      const fromUser = state.profiles.find((p) => p.id === st.from_user_id);
+      const toUser = state.profiles.find((p) => p.id === st.to_user_id);
+      const fromName = fromUser?.display_name || 'Pasangan';
+      const toName = toUser?.display_name || 'Pasangan';
+      return {
+        id: `st-log-${st.id}`,
+        space_id: st.space_id,
+        actor_id: st.from_user_id,
+        actor_name: fromName,
+        action_type: 'SETTLEMENT_ADDED',
+        target_id: st.id,
+        title: 'Settle Up Saldo',
+        description: `${fromName} melunasi saldo hutang ${formatRupiah(Number(st.amount))} ke ${toName}${st.notes ? ` · ${st.notes}` : ''}`,
+        amount: Number(st.amount),
+        created_at: st.settled_at,
+      };
+    });
+
+    // 3. Log manual/kustom khusus space ini (seperti log reset transaksi)
+    const customLogs = (state.activityLogs || []).filter(
+      (l) =>
+        l.space_id === currentSpaceId &&
+        !l.id.startsWith('tx-log-') &&
+        !l.id.startsWith('st-log-')
+    );
+
+    const allLogs = [...customLogs, ...txLogs, ...stLogs];
+    return allLogs.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [
+    state.space,
+    state.transactions,
+    state.settlements,
+    state.activityLogs,
+    state.profiles,
+  ]);
+
   const value: KesflowContextValue = {
     isLoading,
     isAuthenticated,
@@ -1789,7 +1868,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     events: state.events,
     transactions: state.transactions,
     settlements: state.settlements,
-    activityLogs: state.activityLogs ?? [],
+    activityLogs: computedActivityLogs,
     quickPresets: state.quickPresets ?? QUICK_PRESETS,
     balance,
     netBalanceForCurrentUser,
