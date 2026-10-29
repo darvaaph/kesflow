@@ -173,7 +173,7 @@ export default function SettingsPage() {
             return (
               <div
                 key={profile.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3 dark:border-stone-800 dark:bg-stone-950"
+                className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3 dark:border-stone-800 dark:bg-stone-950"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <Avatar
@@ -182,39 +182,38 @@ export default function SettingsPage() {
                     tone={idx === 0 ? 'coral' : 'stone'}
                   />
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                      {profile.display_name}
-                    </p>
-                    <p className="text-xs text-stone-600 dark:text-stone-400">
-                      {profile.email}
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-bold text-stone-900 dark:text-stone-100 truncate">
+                        {profile.display_name}
+                      </p>
+                      {isCurrent && (
+                        <button
+                          type="button"
+                          onClick={handleOpenEditNickname}
+                          aria-label="Edit nickname"
+                          title="Edit nickname"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-200/70 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-stone-600 dark:text-stone-400 truncate">
+                      {profile.email} {isCurrent && <span className="font-medium text-orange-700 dark:text-orange-400">&middot; Kamu</span>}
                     </p>
                   </div>
                 </div>
-                {isCurrent ? (
-                  <div className="flex items-center gap-1.5">
-                    <Badge variant="emerald">Sedang Login</Badge>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleOpenEditNickname}
-                      className="px-2.5 py-1 text-xs"
-                    >
-                      <Pencil className="h-3.5 w-3.5 text-stone-600 dark:text-stone-300" />
-                      <span>Edit Nickname</span>
-                    </Button>
-                  </div>
-                ) : (
-                  isMockMode && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => loginAsAccount(profile.id)}
-                    >
-                      Ganti Akun Demo
-                    </Button>
-                  )
+
+                {!isCurrent && isMockMode && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loginAsAccount(profile.id)}
+                    className="shrink-0 text-xs px-2.5 py-1"
+                  >
+                    Ganti Akun Demo
+                  </Button>
                 )}
               </div>
             );
@@ -222,33 +221,31 @@ export default function SettingsPage() {
         </div>
 
         {/* Invite Code Box */}
-        <div className="rounded-xl border border-dashed border-orange-300 bg-orange-50/60 p-3.5 dark:border-orange-800 dark:bg-orange-950/30 flex flex-wrap items-center justify-between gap-2">
-          <div>
+        <div className="rounded-xl border border-dashed border-orange-300 bg-orange-50/60 p-3.5 dark:border-orange-800 dark:bg-orange-950/30 flex items-center justify-between gap-3">
+          <div className="min-w-0 space-y-0.5">
             <p className="text-xs text-stone-600 dark:text-stone-400">
-              Invite Code ({space?.name || 'Ruang Kencan'})
+              Invite Code ({space?.name || 'Space Kita'})
             </p>
-            <p className="font-mono text-lg font-extrabold tracking-widest text-orange-900 dark:text-orange-200">
+            <p className="font-mono text-xl font-extrabold tracking-widest text-orange-900 dark:text-orange-200">
               {inviteCode}
             </p>
+            <p className="text-[11px] text-stone-500 dark:text-stone-400">
+              Bagikan kode ini ke pasanganmu untuk bergabung
+            </p>
           </div>
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
             onClick={handleCopyCode}
+            aria-label={copied ? 'Kode tersalin' : 'Salin kode'}
+            title={copied ? 'Tersalin!' : 'Salin kode'}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 transition-colors"
           >
             {copied ? (
-              <>
-                <Check className="h-4 w-4 text-emerald-700" />
-                <span>Tersalin</span>
-              </>
+              <Check className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
             ) : (
-              <>
-                <Copy className="h-4 w-4" />
-                <span>Salin Kode</span>
-              </>
+              <Copy className="h-4 w-4" />
             )}
-          </Button>
+          </button>
         </div>
       </Card>
 
