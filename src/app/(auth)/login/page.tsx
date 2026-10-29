@@ -10,6 +10,7 @@ import {
   Zap,
   UserCheck,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { USER_NADIN_ID, USER_RAKA_ID } from '@/lib/mockData';
@@ -31,6 +32,7 @@ export default function LoginPage() {
   } = useKesflow();
 
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Jika sudah terautentikasi (misal setelah popup/redirect Google selesai),
@@ -53,6 +55,7 @@ export default function LoginPage() {
   };
 
   const handleQuickAccountLogin = (userId: string) => {
+    setSelectedAccountId(userId);
     loginAsAccount(userId);
     router.push('/');
   };
@@ -134,11 +137,13 @@ export default function LoginPage() {
                         </p>
                       </div>
                     </div>
-                    {isActive && (
+                    {selectedAccountId === profile.id ? (
+                      <Loader2 className="h-4 w-4 shrink-0 text-orange-600 animate-spin" />
+                    ) : isActive ? (
                       <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-700 text-white">
                         <Check className="h-3.5 w-3.5" />
                       </span>
-                    )}
+                    ) : null}
                   </button>
                 );
               })}

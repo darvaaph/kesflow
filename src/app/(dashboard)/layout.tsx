@@ -46,9 +46,9 @@ function DashboardLayoutContent({
       <Header />
       <IosInstallBanner />
       <main className="mx-auto w-full max-w-md sm:max-w-lg md:max-w-xl flex-1 px-4 pt-4 pb-36 sm:pb-32">
-        {isNavigating ? (
+        {isNavigating || isLoading ? (
           <div className="animate-fadeIn">
-            {getSkeletonForPath(targetPath)}
+            {getSkeletonForPath(targetPath || '/')}
           </div>
         ) : (
           <div className="animate-fadeIn">
