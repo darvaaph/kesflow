@@ -376,6 +376,37 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       };
     } else {
       fetchSupabaseData();
+
+      const supabase = createClient();
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event) => {
+        if (
+          event === 'SIGNED_IN' ||
+          event === 'TOKEN_REFRESHED' ||
+          event === 'USER_UPDATED'
+        ) {
+          fetchSupabaseData();
+        } else if (event === 'SIGNED_OUT') {
+          setIsAuthenticated(false);
+          setActiveUserId('');
+          setState({
+            space: null,
+            members: [],
+            profiles: [],
+            categories: DEFAULT_CATEGORIES,
+            events: [],
+            transactions: [],
+            settlements: [],
+            activityLogs: [],
+            quickPresets: QUICK_PRESETS,
+          });
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
   }, [isMockMode, fetchSupabaseData]);
 
@@ -448,11 +479,12 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
   }, [state.profiles, activeUserId]);
 
   const partnerUser = useMemo<Profile | null>(() => {
+    if (!state.space || state.members.length < 2) return null;
     const found = state.profiles.find(
       (p) => p.id !== (currentUser?.id ?? activeUserId)
     );
     return found ?? null;
-  }, [state.profiles, currentUser, activeUserId]);
+  }, [state.space, state.members.length, state.profiles, currentUser, activeUserId]);
 
   const balance = useMemo<RunningBalanceResult>(() => {
     return calculateRunningBalance(

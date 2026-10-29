@@ -15,15 +15,19 @@ function DashboardLayoutContent({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isLoading, isAuthenticated } = useKesflow();
+  const { isLoading, isAuthenticated, space } = useKesflow();
   const { isNavigating, targetPath } = useNavigation();
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace('/login');
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.replace('/login');
+      } else if (!space) {
+        router.replace('/onboarding');
+      }
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, space, router]);
 
   return (
     <div className="min-h-screen bg-warm-bg dark:bg-stone-950 flex flex-col relative">

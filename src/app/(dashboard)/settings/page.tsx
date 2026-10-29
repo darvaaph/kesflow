@@ -126,7 +126,7 @@ export default function SettingsPage() {
         <div className="rounded-xl border border-dashed border-orange-300 bg-orange-50/60 p-3.5 dark:border-orange-800 dark:bg-orange-950/30 flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-xs text-stone-600 dark:text-stone-400">
-              Invite Code ({space?.name || 'Raka & Nadin'})
+              Invite Code ({space?.name || 'Ruang Kencan'})
             </p>
             <p className="font-mono text-lg font-extrabold tracking-widest text-orange-900 dark:text-orange-200">
               {inviteCode}

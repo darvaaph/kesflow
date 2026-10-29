@@ -26,8 +26,8 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
   } = useKesflow();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const myName = currentUser?.display_name || 'Raka';
-  const partnerName = partnerUser?.display_name || 'Nadin';
+  const myName = currentUser?.display_name || 'Kamu';
+  const partnerName = partnerUser?.display_name || 'Pasangan';
 
   const isMeA = (currentUser?.id ?? userAId) === userAId;
   const summary = useMemo(
@@ -42,7 +42,11 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
   let friendlySubtext =
     'Nggak ada yang perlu dibayar saat ini. Siap buat date berikutnya!';
 
-  if (isOwedByPartner) {
+  if (!partnerUser) {
+    friendlyHeadline = 'Menunggu Pasangan Bergabung';
+    friendlySubtext =
+      'Bagikan kode undangan ke pacar/pasanganmu agar saldo otomatis terhitung berdua.';
+  } else if (isOwedByPartner) {
     friendlyHeadline = `${partnerName} masih utang ke kamu ${formatRupiah(
       netBalanceForCurrentUser
     )}`;

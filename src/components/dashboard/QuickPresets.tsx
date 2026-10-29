@@ -51,8 +51,8 @@ export function QuickPresets() {
 
   const myId = currentUser?.id || userAId;
   const partnerId = partnerUser?.id || userBId;
-  const myName = currentUser?.display_name || 'Raka';
-  const partnerName = partnerUser?.display_name || 'Nadin';
+  const myName = currentUser?.display_name || 'Kamu';
+  const partnerName = partnerUser?.display_name || 'Pasangan';
 
   // Transaction quick log sheet state
   const [selectedPreset, setSelectedPreset] = useState<QuickPresetItem | null>(

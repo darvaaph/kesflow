@@ -5,6 +5,7 @@ import { CheckCircle2, History } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { formatRelativeDate, formatRupiah } from '@/lib/format';
 import { BalanceCard } from '@/components/dashboard/BalanceCard';
+import { InvitePartnerBanner } from '@/components/dashboard/InvitePartnerBanner';
 import { QuickPresets } from '@/components/dashboard/QuickPresets';
 import { TransactionList } from '@/components/dashboard/TransactionList';
 import { AddTransactionDrawer } from '@/components/transactions/AddTransactionDrawer';
@@ -24,6 +25,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <InvitePartnerBanner />
+
       <BalanceCard onOpenSettleUp={() => setIsSettleOpen(true)} />
 
       <QuickPresets />

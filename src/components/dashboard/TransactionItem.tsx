@@ -41,8 +41,8 @@ export function TransactionItem({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const myId = currentUser?.id ?? userAId;
-  const myName = currentUser?.display_name || 'Raka';
-  const partnerName = partnerUser?.display_name || 'Nadin';
+  const myName = currentUser?.display_name || 'Kamu';
+  const partnerName = partnerUser?.display_name || 'Pasangan';
 
   const paidByMe = transaction.payer_id === myId;
   const payerLabel = paidByMe ? `${myName} (Kamu)` : partnerName;

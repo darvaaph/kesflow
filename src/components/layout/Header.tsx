@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Heart, Moon, Sun, Wifi, WifiOff } from 'lucide-react';
+import { Heart, Moon, Sun, UserPlus, Wifi, WifiOff } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { Avatar } from '@/components/ui/Avatar';
 
@@ -31,8 +31,8 @@ export function Header() {
     }
   };
 
-  const myName = currentUser?.display_name || 'Raka';
-  const partnerName = partnerUser?.display_name || 'Nadin';
+  const myName = currentUser?.display_name || 'Kamu';
+  const partnerName = partnerUser?.display_name || null;
 
   return (
     <header className="sticky top-0 z-30 border-b border-stone-200/90 bg-warm-bg/95 backdrop-blur-sm dark:border-stone-800 dark:bg-stone-950/95 pt-safe">
@@ -40,12 +40,21 @@ export function Header() {
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="flex -space-x-2 shrink-0">
             <Avatar name={myName} size="sm" tone="coral" />
-            <Avatar name={partnerName} size="sm" tone="stone" />
+            {partnerName ? (
+              <Avatar name={partnerName} size="sm" tone="stone" />
+            ) : (
+              <div
+                title="Menunggu pasangan bergabung"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-stone-400 bg-stone-100 text-stone-500 shadow-sm dark:border-stone-600 dark:bg-stone-900"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+              </div>
+            )}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <h1 className="text-sm font-bold leading-tight text-stone-900 dark:text-stone-100">
-                {space?.name || `${myName} & ${partnerName}`}
+                {space?.name || (partnerName ? `${myName} & ${partnerName}` : `${myName} · Menunggu Pasangan`)}
               </h1>
               <Heart
                 className="h-3.5 w-3.5 shrink-0 text-orange-700 dark:text-orange-400 fill-orange-700 dark:fill-orange-400"
@@ -53,6 +62,14 @@ export function Header() {
               />
             </div>
             <div className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-400">
+              {partnerName ? (
+                <span>Aktif: {myName}</span>
+              ) : (
+                <span className="font-semibold text-orange-700 dark:text-orange-400">
+                  Kode: {space?.invite_code || '...'}
+                </span>
+              )}
+              <span aria-hidden="true">&middot;</span>
               <span className="inline-flex items-center gap-1">
                 {isRealtimeConnected ? (
                   <>

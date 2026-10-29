@@ -22,8 +22,8 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
     settleUpBalance,
   } = useKesflow();
 
-  const myName = currentUser?.display_name || 'Raka';
-  const partnerName = partnerUser?.display_name || 'Nadin';
+  const myName = currentUser?.display_name || 'Kamu';
+  const partnerName = partnerUser?.display_name || 'Pasangan';
 
   const absAmount = Math.abs(netBalanceForCurrentUser);
   const payerName = netBalanceForCurrentUser > 0 ? partnerName : myName;

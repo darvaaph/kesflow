@@ -41,13 +41,13 @@ export function AddTransactionDrawer({
 
   const myId = currentUser?.id ?? userAId;
   const partnerId = partnerUser?.id ?? userBId;
-  const myName = currentUser?.display_name || 'Raka';
-  const partnerName = partnerUser?.display_name || 'Nadin';
+  const myName = currentUser?.display_name || 'Kamu';
+  const partnerName = partnerUser?.display_name || 'Pasangan (Belum Bergabung)';
 
   const userAProfile = profiles.find((p) => p.id === userAId);
   const userBProfile = profiles.find((p) => p.id === userBId);
-  const userAName = userAProfile?.display_name || 'Raka';
-  const userBName = userBProfile?.display_name || 'Nadin';
+  const userAName = userAProfile?.display_name || myName;
+  const userBName = userBProfile?.display_name || partnerName;
 
   const [title, setTitle] = useState('');
   const [amountDisplay, setAmountDisplay] = useState('');
