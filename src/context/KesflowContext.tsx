@@ -2112,29 +2112,37 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     const title = `Tes Notifikasi Kesflow ❤️`;
     const body = `Halo ${myName}! Notifikasi dari ${partnerName} siap tampil di layar HP-mu.`;
 
-    setLiveNotification({
-      id: `test-push-${Date.now()}`,
-      title,
-      body,
-      tone: 'orange',
-    });
-
-    const shownLocal = await triggerLocalServiceWorkerNotification(title, body);
-    if (state.space?.id && currentUser?.id) {
-      await fetch('/api/push/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          spaceId: state.space.id,
-          actorId: currentUser.id,
-          title,
-          body,
-          includeSelf: true,
-        }),
-      }).catch(() => {});
+    // 1. Jika pengguna sudah berlangganan server push, kirim 1x lewat Web Push API resmi
+    if (isPushSubscribed && state.space?.id && currentUser?.id) {
+      try {
+        const res = await fetch('/api/push/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            spaceId: state.space.id,
+            actorId: currentUser.id,
+            title,
+            body,
+            includeSelf: true,
+          }),
+        });
+        if (res.ok) {
+          return true;
+        }
+      } catch {
+        // Fallback jika network error
+      }
     }
-    return shownLocal;
-  }, [currentUser?.display_name, currentUser?.id, partnerUser?.display_name, state.space?.id]);
+
+    // 2. Fallback: jika belum terhubung ke database atau push server, tampilkan 1x via service worker lokal
+    return triggerLocalServiceWorkerNotification(title, body);
+  }, [
+    currentUser?.display_name,
+    currentUser?.id,
+    partnerUser?.display_name,
+    state.space?.id,
+    isPushSubscribed,
+  ]);
 
   const value: KesflowContextValue = {
     isLoading,

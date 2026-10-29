@@ -385,7 +385,7 @@ export default function SettingsPage() {
         </div>
 
         <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-          Dapatkan notifikasi langsung ala <strong>Dynamic Island</strong> saat pasanganmu mencatat bill baru atau melakukan <strong>Settle Up</strong>, bahkan saat layar HP terkunci.
+          Dapatkan notifikasi langsung di <strong>Lock Screen &amp; Notification Center</strong> saat pasanganmu mencatat bill baru atau melakukan <strong>Settle Up</strong>, bahkan saat layar HP terkunci.
         </p>
 
         {isIosNonStandalone && (
