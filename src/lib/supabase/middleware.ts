@@ -1,24 +1,29 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { isSupabaseConfigured } from './client';
+import { isSupabaseConfigured, SESSION_COOKIE_MAX_AGE } from './client';
 
 export async function updateSession(request: NextRequest) {
-  const supabaseResponse = NextResponse.next({
-    request,
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
   });
 
   // Jika dalam mode Mock / Demo lokal (Supabase belum dikonfigurasi),
   // jangan blokir request di server middleware agar fallback LocalStorage berjalan mulus.
   if (!isSupabaseConfigured()) {
-    return supabaseResponse;
+    return response;
   }
-
-  let response = supabaseResponse;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: {
+        maxAge: SESSION_COOKIE_MAX_AGE,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+      },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -37,7 +42,12 @@ export async function updateSession(request: NextRequest) {
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, {
+              ...options,
+              maxAge: options?.maxAge ?? SESSION_COOKIE_MAX_AGE,
+              sameSite: 'lax',
+              secure: process.env.NODE_ENV === 'production',
+            })
           );
         },
       },
@@ -55,13 +65,22 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    // Teruskan cookie sesi yang baru/diperbarui agar tidak hilang
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+    return redirectResponse;
   }
 
   if (user && pathname.startsWith('/login')) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+    return redirectResponse;
   }
 
   return response;

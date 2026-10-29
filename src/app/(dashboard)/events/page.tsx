@@ -195,14 +195,18 @@ export default function EventsPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <span className="text-base font-bold text-stone-900 dark:text-stone-100 truncate">
                           {evt.title}
                         </span>
                         {evt.is_active && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
+                          <span
+                            title="Momen Sedang Aktif"
+                            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100/90 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300"
+                          >
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
-                            Sedang Berlangsung
+                            <span className="sm:hidden">Aktif</span>
+                            <span className="hidden sm:inline">Sedang Berlangsung</span>
                           </span>
                         )}
                       </div>

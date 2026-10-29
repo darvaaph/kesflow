@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/database.types';
+import { SESSION_COOKIE_MAX_AGE } from './client';
 
 export function createServerSupabaseClient(): SupabaseClient<Database> {
   const cookieStore = cookies();
@@ -10,6 +11,11 @@ export function createServerSupabaseClient(): SupabaseClient<Database> {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 
   return createServerClient<Database>(url, key, {
+    cookieOptions: {
+      maxAge: SESSION_COOKIE_MAX_AGE,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -19,7 +25,12 @@ export function createServerSupabaseClient(): SupabaseClient<Database> {
       ) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            cookieStore.set(name, value, {
+              ...options,
+              maxAge: options?.maxAge ?? SESSION_COOKIE_MAX_AGE,
+              sameSite: 'lax',
+              secure: process.env.NODE_ENV === 'production',
+            })
           );
         } catch {
           // Ignored when called from a Server Component
