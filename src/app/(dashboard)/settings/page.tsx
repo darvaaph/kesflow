@@ -12,6 +12,7 @@ import {
   Smartphone,
   UserCheck,
   Users,
+  Pencil,
 } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { formatRelativeDate } from '@/lib/format';
@@ -19,6 +20,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
+import { Input } from '@/components/ui/Input';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { ActivityMutationSheet } from '@/components/transactions/ActivityMutationSheet';
 
 export default function SettingsPage() {
@@ -29,6 +32,7 @@ export default function SettingsPage() {
     currentUser,
     activityLogs,
     loginAsAccount,
+    updateNickname,
     resetDemoData,
     logout,
   } = useKesflow();
@@ -36,8 +40,36 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false);
   const [resetDone, setResetDone] = useState(false);
   const [isMutationOpen, setIsMutationOpen] = useState(false);
+  const [isEditNicknameOpen, setIsEditNicknameOpen] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState('');
+  const [isSavingNickname, setIsSavingNickname] = useState(false);
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
 
   const inviteCode = space?.invite_code || 'LOVE24';
+
+  const handleOpenEditNickname = () => {
+    setNicknameInput(currentUser?.display_name || '');
+    setNicknameError(null);
+    setIsEditNicknameOpen(true);
+  };
+
+  const handleSaveNickname = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nicknameInput.trim()) {
+      setNicknameError('Nickname tidak boleh kosong');
+      return;
+    }
+    setIsSavingNickname(true);
+    setNicknameError(null);
+    try {
+      await updateNickname(nicknameInput.trim());
+      setIsEditNicknameOpen(false);
+    } catch (err) {
+      setNicknameError(err instanceof Error ? err.message : 'Gagal menyimpan nickname');
+    } finally {
+      setIsSavingNickname(false);
+    }
+  };
 
   const handleCopyCode = async () => {
     try {
@@ -106,7 +138,19 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 {isCurrent ? (
-                  <Badge variant="emerald">Sedang Login</Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="emerald">Sedang Login</Badge>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleOpenEditNickname}
+                      className="px-2.5 py-1 text-xs"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-stone-600 dark:text-stone-300" />
+                      <span>Edit Nickname</span>
+                    </Button>
+                  </div>
                 ) : (
                   <Button
                     type="button"
@@ -271,6 +315,43 @@ export default function SettingsPage() {
         isOpen={isMutationOpen}
         onClose={() => setIsMutationOpen(false)}
       />
+
+      <BottomSheet
+        isOpen={isEditNicknameOpen}
+        onClose={() => setIsEditNicknameOpen(false)}
+        title="Ubah Nickname"
+        description="Panggilan ini akan tampil di seluruh catatan belanja dan saldo bersama pasanganmu."
+      >
+        <form onSubmit={handleSaveNickname} className="space-y-4 pt-2">
+          <Input
+            label="Nickname / Nama Panggilan Baru"
+            placeholder="Contoh: Sayang / Budi / Nadin"
+            value={nicknameInput}
+            onChange={(e) => setNicknameInput(e.target.value)}
+            required
+            autoFocus
+          />
+
+          {nicknameError && (
+            <p className="text-xs font-medium text-red-600 dark:text-red-400">
+              {nicknameError}
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEditNicknameOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button type="submit" variant="primary" disabled={isSavingNickname}>
+              {isSavingNickname ? 'Menyimpan...' : 'Simpan Nickname'}
+            </Button>
+          </div>
+        </form>
+      </BottomSheet>
     </div>
   );
 }

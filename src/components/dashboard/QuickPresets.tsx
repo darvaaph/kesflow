@@ -245,7 +245,7 @@ export function QuickPresets() {
         </div>
       )}
 
-      <div className="-mx-4 px-4 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x">
+      <div className="w-full flex items-center gap-2 overflow-x-auto pb-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x">
         {quickPresets.map((preset) => (
           <button
             key={preset.id}

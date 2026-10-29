@@ -103,6 +103,7 @@ interface KesflowContextValue {
     nickname: string
   ) => Promise<{ inviteCode: string }>;
   joinCoupleSpace: (inviteCode: string, nickname: string) => Promise<void>;
+  updateNickname: (newNickname: string) => Promise<void>;
   addTransaction: (input: NewTransactionInput) => Promise<Transaction>;
   updateTransaction: (
     id: string,
@@ -759,6 +760,12 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         throw new Error(memberErr.message);
       }
 
+      // Sinkronkan juga ke profiles.display_name agar seragam di seluruh app
+      await supabase
+        .from('profiles')
+        .update({ display_name: cleanNickname, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
       await fetchSupabaseData();
       return { inviteCode };
     },
@@ -858,6 +865,12 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       if (joinErr) {
         throw new Error(joinErr.message);
       }
+
+      // Sinkronkan juga ke profiles.display_name agar seragam di seluruh app
+      await supabase
+        .from('profiles')
+        .update({ display_name: cleanNickname, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
 
       await fetchSupabaseData();
     },
@@ -1582,6 +1595,66 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     [isMockMode, state, broadcastLocalState, fetchSupabaseData]
   );
 
+  const updateNickname = useCallback(
+    async (newNickname: string): Promise<void> => {
+      setError(null);
+      const cleanName = newNickname.trim();
+      if (!cleanName) {
+        throw new Error('Nickname tidak boleh kosong.');
+      }
+
+      const activeId = currentUser?.id ?? activeUserId;
+
+      if (isMockMode) {
+        const updatedProfiles = state.profiles.map((p) =>
+          p.id === activeId ? { ...p, display_name: cleanName } : p
+        );
+        const updatedMembers = state.members.map((m) =>
+          m.user_id === activeId ? { ...m, nickname: cleanName } : m
+        );
+        const nextState: KesflowStateStorage = {
+          ...state,
+          profiles: updatedProfiles,
+          members: updatedMembers,
+        };
+        setState(nextState);
+        broadcastLocalState(nextState);
+        return;
+      }
+
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Silakan login terlebih dahulu.');
+
+      // Update profil di table profiles
+      const { error: profErr } = await supabase
+        .from('profiles')
+        .update({
+          display_name: cleanName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (profErr) {
+        throw new Error(profErr.message);
+      }
+
+      // Update juga di space_members jika sudah bergabung ke space
+      if (state.space?.id) {
+        await supabase
+          .from('space_members')
+          .update({ nickname: cleanName })
+          .eq('space_id', state.space.id)
+          .eq('user_id', user.id);
+      }
+
+      await fetchSupabaseData();
+    },
+    [isMockMode, currentUser, activeUserId, state, broadcastLocalState, fetchSupabaseData]
+  );
+
   const resetQuickPresets = useCallback(async (): Promise<void> => {
     setError(null);
     if (isMockMode) {
@@ -1646,6 +1719,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     switchDemoActiveUser,
     createCoupleSpace,
     joinCoupleSpace,
+    updateNickname,
     addTransaction,
     updateTransaction,
     deleteTransaction,
