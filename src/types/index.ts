@@ -58,6 +58,14 @@ export interface RunningBalanceResult {
 
 export interface QuickPresetItem {
   id: string;
+  space_id?: string;
+  label: string;
+  amount: number;
+  categoryName: string;
+  iconName: string;
+}
+
+export interface QuickPresetInput {
   label: string;
   amount: number;
   categoryName: string;

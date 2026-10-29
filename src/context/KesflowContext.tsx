@@ -14,6 +14,8 @@ import {
   DateEvent,
   NewTransactionInput,
   Profile,
+  QuickPresetInput,
+  QuickPresetItem,
   RunningBalanceResult,
   Settlement,
   Space,
@@ -33,6 +35,7 @@ import {
   INITIAL_DEMO_SETTLEMENTS,
   INITIAL_DEMO_SPACE,
   INITIAL_DEMO_TRANSACTIONS,
+  QUICK_PRESETS,
 } from '@/lib/mockData';
 import {
   BalanceBreakdown,
@@ -60,6 +63,7 @@ interface KesflowStateStorage {
   transactions: Transaction[];
   settlements: Settlement[];
   activityLogs: ActivityLogItem[];
+  quickPresets?: QuickPresetItem[];
 }
 
 interface KesflowContextValue {
@@ -80,6 +84,7 @@ interface KesflowContextValue {
   transactions: Transaction[];
   settlements: Settlement[];
   activityLogs: ActivityLogItem[];
+  quickPresets: QuickPresetItem[];
   balance: RunningBalanceResult;
   netBalanceForCurrentUser: number;
   balanceBreakdownForA: BalanceBreakdown;
@@ -106,6 +111,13 @@ interface KesflowContextValue {
   addDateEvent: (title: string, startDate: string) => Promise<DateEvent>;
   toggleEventActive: (eventId: string) => Promise<void>;
   deleteDateEvent: (eventId: string) => Promise<void>;
+  addQuickPreset: (input: QuickPresetInput) => Promise<QuickPresetItem>;
+  updateQuickPreset: (
+    id: string,
+    input: QuickPresetInput
+  ) => Promise<QuickPresetItem>;
+  deleteQuickPreset: (id: string) => Promise<void>;
+  resetQuickPresets: () => Promise<void>;
   resetDemoData: () => void;
   clearError: () => void;
 }
@@ -127,6 +139,7 @@ function getInitialStorage(): KesflowStateStorage {
     transactions: INITIAL_DEMO_TRANSACTIONS,
     settlements: INITIAL_DEMO_SETTLEMENTS,
     activityLogs: INITIAL_ACTIVITY_LOGS,
+    quickPresets: QUICK_PRESETS,
   };
 }
 
@@ -219,6 +232,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         eventsRes,
         txRes,
         settlementsRes,
+        presetsRes,
       ] = await Promise.all([
         supabase.from('spaces').select('*').eq('id', spaceId).single(),
         supabase
@@ -242,6 +256,11 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .eq('space_id', spaceId)
           .order('settled_at', { ascending: false }),
+        supabase
+          .from('quick_presets')
+          .select('*')
+          .eq('space_id', spaceId)
+          .order('created_at', { ascending: true }),
       ]);
 
       const memberUserIds = (membersRes.data ?? []).map((m) => m.user_id);
@@ -262,6 +281,17 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         transactions: txRes.data ?? [],
         settlements: settlementsRes.data ?? [],
         activityLogs: prev.activityLogs ?? [],
+        quickPresets:
+          presetsRes.data && presetsRes.data.length > 0
+            ? presetsRes.data.map((r: any) => ({
+                id: r.id,
+                space_id: r.space_id,
+                label: r.label,
+                amount: Number(r.amount),
+                categoryName: r.category_name || 'Transport & Parkir',
+                iconName: r.icon_name || 'Zap',
+              }))
+            : prev.quickPresets ?? QUICK_PRESETS,
       }));
     } catch (err) {
       setError(
@@ -361,6 +391,18 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           event: 'INSERT',
           schema: 'public',
           table: 'settlements',
+          filter: `space_id=eq.${spaceId}`,
+        },
+        () => {
+          fetchSupabaseData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'quick_presets',
           filter: `space_id=eq.${spaceId}`,
         },
         () => {
@@ -1260,6 +1302,189 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     [isMockMode, state, broadcastLocalState, fetchSupabaseData]
   );
 
+  const addQuickPreset = useCallback(
+    async (input: QuickPresetInput): Promise<QuickPresetItem> => {
+      setError(null);
+      const cleanLabel = input.label.trim();
+      if (!cleanLabel) {
+        throw new Error('Nama pintasan wajib diisi.');
+      }
+      if (input.amount <= 0) {
+        throw new Error('Nominal pintasan harus lebih besar dari Rp 0.');
+      }
+      const spaceId = state.space?.id ?? DEMO_SPACE_ID;
+
+      if (isMockMode) {
+        const newPreset: QuickPresetItem = {
+          id: `preset-${Date.now()}`,
+          space_id: spaceId,
+          label: cleanLabel,
+          amount: Math.round(input.amount),
+          categoryName: input.categoryName || 'Transport & Parkir',
+          iconName: input.iconName || 'Zap',
+        };
+        const currentList = state.quickPresets ?? QUICK_PRESETS;
+        const nextState: KesflowStateStorage = {
+          ...state,
+          quickPresets: [...currentList, newPreset],
+        };
+        setState(nextState);
+        broadcastLocalState(nextState);
+        return newPreset;
+      }
+
+      const supabase = createClient();
+      const { data, error: insertErr } = await supabase
+        .from('quick_presets')
+        .insert({
+          space_id: spaceId,
+          label: cleanLabel,
+          amount: Math.round(input.amount),
+          category_name: input.categoryName || 'Transport & Parkir',
+          icon_name: input.iconName || 'Zap',
+        })
+        .select('*')
+        .single();
+
+      if (insertErr || !data) {
+        throw new Error(insertErr?.message || 'Gagal menambahkan pintasan.');
+      }
+
+      const item: QuickPresetItem = {
+        id: data.id,
+        space_id: data.space_id,
+        label: data.label,
+        amount: Number(data.amount),
+        categoryName: data.category_name || 'Transport & Parkir',
+        iconName: data.icon_name || 'Zap',
+      };
+      await fetchSupabaseData();
+      return item;
+    },
+    [isMockMode, state, broadcastLocalState, fetchSupabaseData]
+  );
+
+  const updateQuickPreset = useCallback(
+    async (id: string, input: QuickPresetInput): Promise<QuickPresetItem> => {
+      setError(null);
+      const cleanLabel = input.label.trim();
+      if (!cleanLabel) {
+        throw new Error('Nama pintasan wajib diisi.');
+      }
+      if (input.amount <= 0) {
+        throw new Error('Nominal pintasan harus lebih besar dari Rp 0.');
+      }
+
+      if (isMockMode) {
+        const currentList = state.quickPresets ?? QUICK_PRESETS;
+        const updatedList = currentList.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                label: cleanLabel,
+                amount: Math.round(input.amount),
+                categoryName: input.categoryName || p.categoryName,
+                iconName: input.iconName || p.iconName,
+              }
+            : p
+        );
+        const nextState: KesflowStateStorage = {
+          ...state,
+          quickPresets: updatedList,
+        };
+        setState(nextState);
+        broadcastLocalState(nextState);
+        const item = updatedList.find((p) => p.id === id)!;
+        return item;
+      }
+
+      const supabase = createClient();
+      const { data, error: updateErr } = await supabase
+        .from('quick_presets')
+        .update({
+          label: cleanLabel,
+          amount: Math.round(input.amount),
+          category_name: input.categoryName,
+          icon_name: input.iconName,
+        })
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      if (updateErr || !data) {
+        throw new Error(updateErr?.message || 'Gagal mengubah pintasan.');
+      }
+
+      const item: QuickPresetItem = {
+        id: data.id,
+        space_id: data.space_id,
+        label: data.label,
+        amount: Number(data.amount),
+        categoryName: data.category_name,
+        iconName: data.icon_name,
+      };
+      await fetchSupabaseData();
+      return item;
+    },
+    [isMockMode, state, broadcastLocalState, fetchSupabaseData]
+  );
+
+  const deleteQuickPreset = useCallback(
+    async (id: string): Promise<void> => {
+      setError(null);
+      if (isMockMode) {
+        const currentList = state.quickPresets ?? QUICK_PRESETS;
+        const updatedList = currentList.filter((p) => p.id !== id);
+        const nextState: KesflowStateStorage = {
+          ...state,
+          quickPresets: updatedList,
+        };
+        setState(nextState);
+        broadcastLocalState(nextState);
+        return;
+      }
+
+      const supabase = createClient();
+      const { error: delErr } = await supabase
+        .from('quick_presets')
+        .delete()
+        .eq('id', id);
+
+      if (delErr) {
+        throw new Error(delErr.message || 'Gagal menghapus pintasan.');
+      }
+      await fetchSupabaseData();
+    },
+    [isMockMode, state, broadcastLocalState, fetchSupabaseData]
+  );
+
+  const resetQuickPresets = useCallback(async (): Promise<void> => {
+    setError(null);
+    if (isMockMode) {
+      const nextState: KesflowStateStorage = {
+        ...state,
+        quickPresets: QUICK_PRESETS,
+      };
+      setState(nextState);
+      broadcastLocalState(nextState);
+      return;
+    }
+
+    const spaceId = state.space?.id ?? DEMO_SPACE_ID;
+    const supabase = createClient();
+    await supabase.from('quick_presets').delete().eq('space_id', spaceId);
+    await supabase.from('quick_presets').insert(
+      QUICK_PRESETS.map((p) => ({
+        space_id: spaceId,
+        label: p.label,
+        amount: p.amount,
+        category_name: p.categoryName,
+        icon_name: p.iconName,
+      }))
+    );
+    await fetchSupabaseData();
+  }, [isMockMode, state, broadcastLocalState, fetchSupabaseData]);
+
   const resetDemoData = useCallback(() => {
     const initial = getInitialStorage();
     setState(initial);
@@ -1286,6 +1511,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     transactions: state.transactions,
     settlements: state.settlements,
     activityLogs: state.activityLogs ?? [],
+    quickPresets: state.quickPresets ?? QUICK_PRESETS,
     balance,
     netBalanceForCurrentUser,
     balanceBreakdownForA,
@@ -1302,6 +1528,10 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     addDateEvent,
     toggleEventActive,
     deleteDateEvent,
+    addQuickPreset,
+    updateQuickPreset,
+    deleteQuickPreset,
+    resetQuickPresets,
     resetDemoData,
     clearError,
   };

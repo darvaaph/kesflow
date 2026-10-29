@@ -227,6 +227,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      quick_presets: {
+        Row: {
+          id: string;
+          space_id: string;
+          label: string;
+          amount: number;
+          category_name: string;
+          icon_name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          space_id: string;
+          label: string;
+          amount: number;
+          category_name?: string;
+          icon_name?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          space_id?: string;
+          label?: string;
+          amount?: number;
+          category_name?: string;
+          icon_name?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

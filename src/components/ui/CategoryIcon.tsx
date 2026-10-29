@@ -6,11 +6,15 @@ import {
   Coffee,
   Cookie,
   Film,
+  Fuel,
   Gift,
+  Heart,
   Hotel,
   MoreHorizontal,
   ShoppingBag,
+  Sparkles,
   UtensilsCrossed,
+  Zap,
 } from 'lucide-react';
 
 export interface CategoryIconProps {
@@ -43,6 +47,14 @@ export function CategoryIcon({
       return <Hotel className={className} />;
     case 'Gift':
       return <Gift className={className} />;
+    case 'Zap':
+      return <Zap className={className} />;
+    case 'Fuel':
+      return <Fuel className={className} />;
+    case 'Heart':
+      return <Heart className={className} />;
+    case 'Sparkles':
+      return <Sparkles className={className} />;
     default:
       return <MoreHorizontal className={className} />;
   }
