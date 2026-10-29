@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Check,
+  ChevronRight,
   Copy,
   History,
   LogOut,
@@ -471,8 +472,8 @@ export default function SettingsPage() {
         </ul>
       </Card>
 
-      {/* Space & Akun Controls */}
-      <Card className="p-5 space-y-4">
+      {/* Space & Akun Controls: Clean, Gen-Z / Modern Action Rows */}
+      <Card className="p-4 sm:p-5 space-y-4">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400" />
           <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
@@ -480,64 +481,93 @@ export default function SettingsPage() {
           </h2>
         </div>
 
+        {/* Status Koneksi Pasangan */}
         {isFullCouple ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-xs text-stone-700 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-stone-300">
-            <span className="font-bold text-emerald-800 dark:text-emerald-300">
-              ✓ Ruang Kencan Aktif:
-            </span>{' '}
-            Anda dan {partnerUser?.display_name || 'Pasangan'} sudah terhubung berdua di ruang ini.
+          <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-200/80 bg-emerald-50/60 p-3 text-xs text-stone-700 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-stone-300">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
+            <p className="leading-snug">
+              <strong className="text-emerald-900 dark:text-emerald-300 font-semibold">
+                Ruang Kencan Aktif:
+              </strong>{' '}
+              Kamu dan {partnerUser?.display_name || 'Pasangan'} sudah terhubung berdua.
+            </p>
           </div>
         ) : (
-          <div className="rounded-xl border border-orange-200 bg-orange-50/60 p-3 text-xs text-stone-700 dark:border-orange-900/60 dark:bg-orange-950/20 dark:text-stone-300 space-y-2">
-            <p>
-              <span className="font-bold text-orange-800 dark:text-orange-300">
-                Menunggu Pasangan:
-              </span>{' '}
-              Ruang kencan ini baru ada Anda. Bagikan kode di atas ke pacar/pasanganmu.
+          <div className="rounded-2xl border border-orange-200/90 bg-orange-50/50 p-3.5 text-xs text-stone-700 dark:border-orange-900/60 dark:bg-orange-950/20 dark:text-stone-300 space-y-1.5">
+            <div className="flex items-center gap-2 font-semibold text-orange-950 dark:text-orange-200">
+              <span className="flex h-2 w-2 rounded-full bg-orange-500 animate-pulse shrink-0" />
+              <span>Menunggu Pasangan Bergabung</span>
+            </div>
+            <p className="text-stone-600 dark:text-stone-400 leading-relaxed">
+              Bagikan kode unik di atas ke pacarmu untuk terhubung.
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              fullWidth
-              onClick={() => router.push('/onboarding')}
-            >
-              Pasangan sudah buat ruang duluan? Gabung kodenya di sini
-            </Button>
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => router.push('/onboarding')}
+                className="inline-flex items-center gap-1 font-bold text-orange-700 hover:text-orange-800 dark:text-orange-400 hover:underline"
+              >
+                <span>Pasangan sudah buat ruang duluan? Gabung kode &rarr;</span>
+              </button>
+            </div>
           </div>
         )}
 
-        <div className="space-y-2.5 pt-1">
-          {/* Tombol Kosongkan Transaksi dengan Verifikasi */}
-          <Button
+        {/* Menu Baris Pengaturan Ruang (Action Rows) */}
+        <div className="divide-y divide-stone-100 dark:divide-stone-800/80 rounded-2xl border border-stone-200/80 bg-stone-50/40 dark:border-stone-800 dark:bg-stone-900/30 overflow-hidden">
+          {/* Baris 1: Kosongkan Transaksi */}
+          <button
             type="button"
-            variant="outline"
-            fullWidth
             onClick={() => setIsConfirmResetOpen(true)}
-            className="text-stone-700 hover:text-red-700 dark:text-stone-300 dark:hover:text-red-400"
+            className="flex w-full items-center justify-between gap-3 p-3.5 text-left transition-colors hover:bg-stone-100/70 dark:hover:bg-stone-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
           >
-            <RotateCcw className="h-4 w-4" />
-            <span>Kosongkan Riwayat Transaksi (Reset ke Rp 0)</span>
-          </Button>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 shrink-0">
+                <RotateCcw className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">
+                  Reset Data Belanja
+                </p>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
+                  Kosongkan seluruh riwayat dan kembalikan saldo ke Rp 0
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-stone-400 shrink-0" />
+          </button>
 
-          {/* Tombol Keluar dari Ruang */}
+          {/* Baris 2: Keluar Ruang Kencan */}
+          <button
+            type="button"
+            onClick={() => setIsConfirmLeaveOpen(true)}
+            className="flex w-full items-center justify-between gap-3 p-3.5 text-left transition-colors hover:bg-stone-100/70 dark:hover:bg-stone-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 shrink-0">
+                <UserMinus className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">
+                  Tinggalkan Space Ini
+                </p>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
+                  Keluar dari ruang kencan berdua saat ini
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-stone-400 shrink-0" />
+          </button>
+        </div>
+
+        {/* Tombol Logout: Bersih, Minimalis & Elegan */}
+        <div className="pt-1">
           <Button
             type="button"
             variant="outline"
-            fullWidth
-            onClick={() => setIsConfirmLeaveOpen(true)}
-            className="text-stone-700 hover:text-stone-900 dark:text-stone-300"
-          >
-            <UserMinus className="h-4 w-4" />
-            <span>Keluar dari Ruang Kencan Ini</span>
-          </Button>
-
-          {/* Tombol Logout */}
-          <Button
-            type="button"
-            variant="danger"
             fullWidth
             onClick={handleLogout}
+            className="h-10 text-xs font-semibold text-stone-600 hover:text-red-700 hover:border-red-200 hover:bg-red-50/50 dark:text-stone-400 dark:hover:text-red-400 dark:hover:border-red-900/50 dark:hover:bg-red-950/20 transition-all gap-1.5"
           >
             <LogOut className="h-4 w-4" />
             <span>Keluar dari Akun (Logout)</span>
