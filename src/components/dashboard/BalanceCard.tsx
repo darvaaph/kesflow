@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
-import { CheckCircle2, HandHeart, Wallet } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { CheckCircle2, ChevronRight, HandHeart, Wallet } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { formatRupiah } from '@/lib/format';
+import { buildDebtSummary } from '@/lib/balanceView';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { BalanceDetailSheet } from '@/components/dashboard/BalanceDetailSheet';
 
 export interface BalanceCardProps {
   onOpenSettleUp: () => void;
@@ -14,23 +16,24 @@ export interface BalanceCardProps {
 
 export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
   const {
-    balance,
+    balanceBreakdownForA,
     netBalanceForCurrentUser,
+    transactions,
+    settlements,
     currentUser,
     partnerUser,
     userAId,
   } = useKesflow();
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const myName = currentUser?.display_name || 'Raka';
   const partnerName = partnerUser?.display_name || 'Nadin';
 
-  const isCurrentUserA = (currentUser?.id ?? userAId) === userAId;
-  const myTotalPaid = isCurrentUserA
-    ? balance.totalPaidByA
-    : balance.totalPaidByB;
-  const partnerTotalPaid = isCurrentUserA
-    ? balance.totalPaidByB
-    : balance.totalPaidByA;
+  const isMeA = (currentUser?.id ?? userAId) === userAId;
+  const summary = useMemo(
+    () => buildDebtSummary(balanceBreakdownForA, isMeA),
+    [balanceBreakdownForA, isMeA]
+  );
 
   const isSettled = netBalanceForCurrentUser === 0;
   const isOwedByPartner = netBalanceForCurrentUser > 0;
@@ -53,7 +56,15 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
     friendlySubtext = `Yuk lunasi ke ${partnerName} supaya catatan kencan kalian kembali seimbang.`;
   }
 
+  const settledDisplay =
+    summary.settled > 0
+      ? `−${formatRupiah(summary.settled)}`
+      : summary.settled < 0
+      ? `+${formatRupiah(-summary.settled)}`
+      : formatRupiah(0);
+
   return (
+    <>
     <Card
       elevated
       className="relative overflow-hidden border-orange-200/90 bg-warm-peach/60 p-4 sm:p-5 dark:border-stone-800 dark:bg-stone-900"
@@ -73,43 +84,58 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
           )}
         </div>
 
-        <div className="space-y-1">
-          <p className="text-lg sm:text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100 tabular-nums">
-            {friendlyHeadline}
-          </p>
-          <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-            {friendlySubtext}
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsDetailOpen(true)}
+          aria-haspopup="dialog"
+          className="block w-full space-y-4 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2"
+        >
+          <div className="space-y-1">
+            <p className="text-lg sm:text-2xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100 tabular-nums">
+              {friendlyHeadline}
+            </p>
+            <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+              {friendlySubtext}
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-xl border border-stone-200/80 bg-white/90 p-3 dark:border-stone-800 dark:bg-stone-950/70">
-          <div className="flex sm:block items-center justify-between">
-            <p className="text-[11px] font-medium text-stone-600 dark:text-stone-400">
-              Total Kencan Bersama
-            </p>
-            <p className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100 tabular-nums whitespace-nowrap">
-              {formatRupiah(balance.totalDateExpense)}
-            </p>
+          <div className="space-y-1.5 rounded-xl border border-stone-200/80 bg-white/90 p-3 text-xs dark:border-stone-800 dark:bg-stone-950/70">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium text-stone-700 dark:text-stone-300">
+                Total talangan bersih
+              </span>
+              <span className="font-bold text-stone-900 dark:text-stone-100 tabular-nums whitespace-nowrap">
+                {formatRupiah(summary.transactionNet)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium text-stone-700 dark:text-stone-300">
+                Sudah dilunasi
+              </span>
+              <span className="font-bold text-emerald-800 dark:text-emerald-300 tabular-nums whitespace-nowrap">
+                {settledDisplay}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t border-stone-200 pt-1.5 dark:border-stone-800">
+              <span className="font-bold text-stone-900 dark:text-stone-100">
+                Sisa
+              </span>
+              <span className="text-sm font-extrabold text-orange-900 dark:text-orange-200 tabular-nums whitespace-nowrap">
+                {formatRupiah(summary.remaining)}
+              </span>
+            </div>
           </div>
-          <div className="flex sm:block items-center justify-between border-t sm:border-t-0 sm:border-l border-stone-200 pt-1.5 sm:pt-0 sm:pl-2.5 dark:border-stone-800">
-            <p className="text-[11px] font-medium text-stone-600 dark:text-stone-400">
-              Dibayar {myName}
-            </p>
-            <p className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100 tabular-nums whitespace-nowrap">
-              {formatRupiah(myTotalPaid)}
-            </p>
-          </div>
-          <div className="flex sm:block items-center justify-between border-t sm:border-t-0 sm:border-l border-stone-200 pt-1.5 sm:pt-0 sm:pl-2.5 dark:border-stone-800">
-            <p className="text-[11px] font-medium text-stone-600 dark:text-stone-400">
-              Dibayar {partnerName}
-            </p>
-            <p className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100 tabular-nums whitespace-nowrap">
-              {formatRupiah(partnerTotalPaid)}
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center justify-between gap-3 pt-1">
+          <span className="flex min-h-[44px] items-center justify-between gap-2 text-xs font-semibold text-orange-800 dark:text-orange-300">
+            <span>
+              Lihat rincian · {transactions.length} transaksi,{' '}
+              {settlements.length} pelunasan
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+          </span>
+        </button>
+
+        <div className="flex items-center justify-between gap-3">
           {isSettled ? (
             <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
@@ -131,5 +157,11 @@ export function BalanceCard({ onOpenSettleUp }: BalanceCardProps) {
         </div>
       </div>
     </Card>
+    <BalanceDetailSheet
+      isOpen={isDetailOpen}
+      onClose={() => setIsDetailOpen(false)}
+      onOpenSettleUp={onOpenSettleUp}
+    />
+    </>
   );
 }

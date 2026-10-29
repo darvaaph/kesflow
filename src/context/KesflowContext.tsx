@@ -35,6 +35,8 @@ import {
   INITIAL_DEMO_TRANSACTIONS,
 } from '@/lib/mockData';
 import {
+  BalanceBreakdown,
+  calculateBalanceBreakdown,
   calculateRunningBalance,
   computeTransactionShares,
 } from '@/lib/balance';
@@ -80,6 +82,7 @@ interface KesflowContextValue {
   activityLogs: ActivityLogItem[];
   balance: RunningBalanceResult;
   netBalanceForCurrentUser: number;
+  balanceBreakdownForA: BalanceBreakdown;
   // Actions
   loginWithEmailOrPin: (email: string, displayName?: string) => Promise<void>;
   loginAsAccount: (userId: string) => void;
@@ -397,6 +400,15 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
 
   const balance = useMemo<RunningBalanceResult>(() => {
     return calculateRunningBalance(
+      userAId,
+      userBId,
+      state.transactions,
+      state.settlements
+    );
+  }, [userAId, userBId, state.transactions, state.settlements]);
+
+  const balanceBreakdownForA = useMemo<BalanceBreakdown>(() => {
+    return calculateBalanceBreakdown(
       userAId,
       userBId,
       state.transactions,
@@ -1276,6 +1288,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     activityLogs: state.activityLogs ?? [],
     balance,
     netBalanceForCurrentUser,
+    balanceBreakdownForA,
     loginWithEmailOrPin,
     loginAsAccount,
     logout,
