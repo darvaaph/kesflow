@@ -97,75 +97,77 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Pilihan Akun Pasangan untuk Testing Realistis */}
-        <Card elevated className="p-5 space-y-3.5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5">
-              <UserCheck className="h-4 w-4 text-orange-700 dark:text-orange-400" />
-              <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                Pilih Akun Pasangan
-              </h2>
+        {/* Pilihan Akun Pasangan (Hanya Tampil Saat Mode Simulasi / Mock Lokal) */}
+        {isMockMode && (
+          <Card elevated className="p-5 space-y-3.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <UserCheck className="h-4 w-4 text-orange-700 dark:text-orange-400" />
+                <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                  Pilih Akun Pasangan (Mode Uji Coba)
+                </h2>
+              </div>
+              <Badge variant="coral">Space: LOVE24</Badge>
             </div>
-            <Badge variant="coral">Space: LOVE24</Badge>
-          </div>
-          <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-            Pilih masuk sebagai <strong>{rakaProfile.display_name}</strong> atau{' '}
-            <strong>{nadinProfile.display_name}</strong> untuk melihat saldo dan
-            mencatat pengeluaran dari masing-masing HP:
-          </p>
+            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+              Pilih masuk sebagai <strong>{rakaProfile.display_name}</strong> atau{' '}
+              <strong>{nadinProfile.display_name}</strong> untuk melihat saldo dan
+              mencatat pengeluaran dari masing-masing HP:
+            </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {[
-              { profile: rakaProfile, tone: 'coral' as const, roleLabel: 'Pasangan 1' },
-              { profile: nadinProfile, tone: 'stone' as const, roleLabel: 'Pasangan 2' },
-            ].map(({ profile, tone, roleLabel }) => {
-              const isActive =
-                isAuthenticated && currentUser?.id === profile.id;
-              return (
-                <button
-                  key={profile.id}
-                  type="button"
-                  onClick={() => handleQuickAccountLogin(profile.id)}
-                  className={`flex min-h-[64px] items-center justify-between gap-3 rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
-                    isActive
-                      ? 'border-orange-700 bg-orange-50/90 dark:border-orange-500 dark:bg-orange-950/50'
-                      : 'border-stone-300 bg-white hover:border-orange-400 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-800'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Avatar
-                      name={profile.display_name}
-                      size="md"
-                      tone={tone}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                        Masuk sbg {profile.display_name}
-                      </p>
-                      <p className="text-xs text-stone-600 dark:text-stone-400">
-                        {profile.email} ({roleLabel})
-                      </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {[
+                { profile: rakaProfile, tone: 'coral' as const, roleLabel: 'Pasangan 1' },
+                { profile: nadinProfile, tone: 'stone' as const, roleLabel: 'Pasangan 2' },
+              ].map(({ profile, tone, roleLabel }) => {
+                const isActive =
+                  isAuthenticated && currentUser?.id === profile.id;
+                return (
+                  <button
+                    key={profile.id}
+                    type="button"
+                    onClick={() => handleQuickAccountLogin(profile.id)}
+                    className={`flex min-h-[64px] items-center justify-between gap-3 rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
+                      isActive
+                        ? 'border-orange-700 bg-orange-50/90 dark:border-orange-500 dark:bg-orange-950/50'
+                        : 'border-stone-300 bg-white hover:border-orange-400 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar
+                        name={profile.display_name}
+                        size="md"
+                        tone={tone}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                          Masuk sbg {profile.display_name}
+                        </p>
+                        <p className="text-xs text-stone-600 dark:text-stone-400">
+                          {profile.email} ({roleLabel})
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  {isActive && (
-                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-700 text-white">
-                      <Check className="h-3.5 w-3.5" />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </Card>
+                    {isActive && (
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-700 text-white">
+                        <Check className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+        )}
 
-        {/* Form Login Email / PIN Manual */}
+        {/* Form Login Asli */}
         <Card className="space-y-4 p-5">
           <div className="space-y-1">
             <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
-              Atau Masuk dengan Email &amp; PIN
+              Masuk ke Akun Kencan
             </h2>
             <p className="text-xs text-stone-600 dark:text-stone-400">
-              Gunakan alamat email pribadimu untuk masuk atau daftar akun baru.
+              Gunakan alamat email pribadimu untuk masuk atau mendaftar otomatis.
             </p>
           </div>
 
