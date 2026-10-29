@@ -2,7 +2,12 @@
 
 import React from 'react';
 import { SplitType } from '@/types';
-import { formatNumberInput, formatRupiah, parseNumberInput } from '@/lib/format';
+import {
+  formatNumberInput,
+  formatRupiah,
+  parseNumberInput,
+  formatShortName,
+} from '@/lib/format';
 import { Input } from '@/components/ui/Input';
 
 export interface SplitModeSelectorProps {
@@ -30,6 +35,11 @@ export function SplitModeSelector({
   customShareB,
   onChangeCustomShares,
 }: SplitModeSelectorProps) {
+  const shortPayer = formatShortName(payerName, 12);
+  const shortOther = formatShortName(otherName, 12);
+  const shortNameA = formatShortName(userAName, 12);
+  const shortNameB = formatShortName(userBName, 12);
+
   const modes: {
     id: SplitType;
     title: string;
@@ -46,12 +56,12 @@ export function SplitModeSelector({
     {
       id: 'FULL_TREAT',
       title: 'Treat 100%',
-      subtitle: `${payerName} treat penuh (saldo tetap Rp 0)`,
+      subtitle: `${shortPayer} treat penuh (saldo tetap Rp 0)`,
     },
     {
       id: 'FULL_OWE',
       title: 'Talangin Semua',
-      subtitle: `${otherName} mengganti 100% ke ${payerName}`,
+      subtitle: `${shortOther} ganti 100% ke ${shortPayer}`,
     },
     {
       id: 'CUSTOM',
@@ -78,11 +88,11 @@ export function SplitModeSelector({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+      <div className="flex items-center justify-between gap-2">
+        <span className="shrink-0 text-xs font-semibold text-stone-700 dark:text-stone-300">
           Bagi Beban (Split)
         </span>
-        <span className="text-[11px] font-medium text-orange-700 dark:text-orange-400">
+        <span className="truncate text-right text-[11px] font-medium text-orange-700 dark:text-orange-400">
           {currentMode.subtitle}
         </span>
       </div>
@@ -118,9 +128,10 @@ export function SplitModeSelector({
       </div>
 
       {value === 'CUSTOM' && (
-        <div className="grid grid-cols-2 gap-2.5 pt-1 rounded-xl border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950">
+        <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950">
           <Input
-            label={`Porsi ${userAName}`}
+            label={`Porsi ${shortNameA}`}
+            labelClassName="text-xs font-semibold text-stone-700 dark:text-stone-300 truncate"
             prefixText="Rp"
             inputMode="numeric"
             placeholder="0"
@@ -128,7 +139,8 @@ export function SplitModeSelector({
             onChange={(e) => handleShareAChange(e.target.value)}
           />
           <Input
-            label={`Porsi ${userBName}`}
+            label={`Porsi ${shortNameB}`}
+            labelClassName="text-xs font-semibold text-stone-700 dark:text-stone-300 truncate"
             prefixText="Rp"
             inputMode="numeric"
             placeholder="0"

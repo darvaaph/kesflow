@@ -58,3 +58,26 @@ export function formatShortDate(isoDate: string): string {
     return isoDate;
   }
 }
+
+/**
+ * Memendekkan nama agar pas di elemen UI sempit (misal kolom porsi custom split, badge, tombol)
+ * Jika nama terdiri dari beberapa kata, utamakan nama depan. Jika tetap panjang, potong dengan elipsis.
+ */
+export function formatShortName(name: string | null | undefined, maxLength = 12): string {
+  if (!name) return '';
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+
+  const words = trimmed.split(/\s+/);
+  // Jika nama lebih dari 1 kata, ambil kata pertama jika kata pertama sudah proporsional (>= 2 dan <= maxLength)
+  if (words.length > 1 && words[0].length >= 2 && words[0].length <= maxLength) {
+    return words[0];
+  }
+
+  // Jika 1 kata tapi melebihi batas maksimal, potong dengan elipsis
+  if (trimmed.length > maxLength) {
+    return `${trimmed.slice(0, maxLength - 1)}…`;
+  }
+
+  return trimmed;
+}

@@ -3,7 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useKesflow } from '@/context/KesflowContext';
 import { SplitType, Transaction } from '@/types';
-import { formatNumberInput, parseNumberInput } from '@/lib/format';
+import {
+  formatNumberInput,
+  parseNumberInput,
+  formatShortName,
+} from '@/lib/format';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -42,7 +46,7 @@ export function AddTransactionDrawer({
   const myId = currentUser?.id ?? userAId;
   const partnerId = partnerUser?.id ?? userBId;
   const myName = currentUser?.display_name || 'Kamu';
-  const partnerName = partnerUser?.display_name || 'Pasangan (Belum Bergabung)';
+  const partnerName = partnerUser?.display_name || 'Pasangan';
 
   const userAProfile = profiles.find((p) => p.id === userAId);
   const userBProfile = profiles.find((p) => p.id === userBId);
@@ -231,35 +235,37 @@ export function AddTransactionDrawer({
           </div>
         </div>
 
-        {/* Siapa yang Membayar: Compact Segmented Bar */}
+        {/* Siapa yang Membayar: Segmented Bar dengan target sentuh lega (h-11) */}
         <div className="space-y-1.5">
           <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
             Siapa yang Membayar di Kasir?
           </span>
-          <div className="grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1 dark:bg-stone-800/80">
+          <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-stone-100 p-1.5 dark:bg-stone-800/80">
             <button
               type="button"
               onClick={() => setPayerId(myId)}
               aria-pressed={payerId === myId}
-              className={`flex h-8 items-center justify-center truncate rounded-lg px-2 text-xs transition-all ${
+              title={`Dibayar ${myName} (Kamu)`}
+              className={`flex h-11 items-center justify-center gap-1.5 truncate rounded-xl px-3 text-xs sm:text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
                 payerId === myId
-                  ? 'bg-white font-bold text-stone-900 shadow-sm dark:bg-stone-900 dark:text-stone-100'
+                  ? 'bg-white font-bold text-orange-950 shadow dark:bg-stone-900 dark:text-orange-200 ring-1 ring-black/5 dark:ring-white/10'
                   : 'font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
               }`}
             >
-              <span className="truncate">Dibayar {myName} (Kamu)</span>
+              <span className="truncate">Dibayar {formatShortName(myName, 10)} (Kamu)</span>
             </button>
             <button
               type="button"
               onClick={() => setPayerId(partnerId)}
               aria-pressed={payerId === partnerId}
-              className={`flex h-8 items-center justify-center truncate rounded-lg px-2 text-xs transition-all ${
+              title={`Dibayar ${partnerName}`}
+              className={`flex h-11 items-center justify-center gap-1.5 truncate rounded-xl px-3 text-xs sm:text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
                 payerId === partnerId
-                  ? 'bg-white font-bold text-stone-900 shadow-sm dark:bg-stone-900 dark:text-stone-100'
+                  ? 'bg-white font-bold text-orange-950 shadow dark:bg-stone-900 dark:text-orange-200 ring-1 ring-black/5 dark:ring-white/10'
                   : 'font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
               }`}
             >
-              <span className="truncate">Dibayar {partnerName}</span>
+              <span className="truncate">Dibayar {formatShortName(partnerName, 14)}</span>
             </button>
           </div>
         </div>

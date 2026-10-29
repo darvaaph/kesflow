@@ -36,6 +36,10 @@ export default function OnboardingPage() {
       setErrorMsg('Masukkan panggilan sayang atau namamu terlebih dahulu.');
       return;
     }
+    if (nickname.trim().length > 20) {
+      setErrorMsg('Nickname maksimal 20 karakter.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -61,6 +65,10 @@ export default function OnboardingPage() {
 
     if (!nickname.trim()) {
       setErrorMsg('Masukkan panggilan sayang atau namamu terlebih dahulu.');
+      return;
+    }
+    if (nickname.trim().length > 20) {
+      setErrorMsg('Nickname maksimal 20 karakter.');
       return;
     }
 
@@ -206,8 +214,10 @@ export default function OnboardingPage() {
                 <Input
                   label="Nickname kamu di Space ini"
                   placeholder="Contoh: Raka / Ayang"
+                  maxLength={20}
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
+                  helperText="Maksimal 20 karakter agar pas di tampilan aplikasi."
                   required
                 />
 
@@ -251,8 +261,10 @@ export default function OnboardingPage() {
               <Input
                 label="Nickname kamu di Space ini"
                 placeholder="Contoh: Nadia / Sayang"
+                maxLength={20}
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
+                helperText="Maksimal 20 karakter agar pas di tampilan aplikasi."
                 required
               />
 

@@ -91,6 +91,10 @@ export default function SettingsPage() {
       setNicknameError('Nickname tidak boleh kosong');
       return;
     }
+    if (nicknameInput.trim().length > 20) {
+      setNicknameError('Nickname maksimal 20 karakter');
+      return;
+    }
     setIsSavingNickname(true);
     setNicknameError(null);
     try {
@@ -559,6 +563,8 @@ export default function SettingsPage() {
             placeholder="Contoh: Sayang / Ayang"
             value={nicknameInput}
             onChange={(e) => setNicknameInput(e.target.value)}
+            maxLength={20}
+            helperText="Maksimal 20 karakter agar pas di tampilan aplikasi."
             required
             autoFocus
           />
