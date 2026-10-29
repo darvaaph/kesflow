@@ -23,9 +23,11 @@ const config: Config = {
       fontFamily: {
         sans: [
           'var(--font-jakarta)',
-          'system-ui',
           '-apple-system',
           'BlinkMacSystemFont',
+          '"SF Pro Display"',
+          '"SF Pro Text"',
+          'system-ui',
           'Segoe UI',
           'Roboto',
           'sans-serif',

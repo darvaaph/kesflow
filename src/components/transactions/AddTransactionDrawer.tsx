@@ -111,7 +111,7 @@ export function AddTransactionDrawer({
     setFormError(null);
 
     if (!title.trim()) {
-      setFormError('Judul pengeluaran wajib diisi (contoh: Makan Malam Sushi).');
+      setFormError('Judul pengeluaran wajib diisi (contoh: Makan Malam Ramen).');
       return;
     }
 
@@ -177,10 +177,11 @@ export function AddTransactionDrawer({
           : 'Transaksi otomatis tersinkron ke layar pasanganmu.'
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-3" noValidate>
+        {/* Judul & Nominal */}
         <Input
           label="Judul Pengeluaran"
-          placeholder="Contoh: Makan Malam Ramen / Tiket Nonton"
+          placeholder="Contoh: Makan Malam Ramen / Bioskop"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -197,11 +198,17 @@ export function AddTransactionDrawer({
           className="text-lg font-bold tabular-nums"
         />
 
+        {/* Kategori: Horizontal Chips */}
         <div className="space-y-1.5">
-          <span className="block text-sm font-medium text-stone-800 dark:text-stone-200">
-            Kategori
-          </span>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center justify-between">
+            <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+              Kategori
+            </span>
+            <span className="text-[11px] text-stone-400 dark:text-stone-500">
+              Geser pilihan →
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x">
             {categories.map((cat) => {
               const selected = categoryId === cat.id;
               return (
@@ -210,52 +217,54 @@ export function AddTransactionDrawer({
                   type="button"
                   onClick={() => setCategoryId(cat.id)}
                   aria-pressed={selected}
-                  className={`flex min-h-[46px] items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold leading-snug transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
+                  className={`flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 snap-start ${
                     selected
-                      ? 'border-orange-700 bg-orange-50 text-orange-950 dark:border-orange-500 dark:bg-orange-950/60 dark:text-orange-100'
-                      : 'border-stone-300 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
+                      ? 'border-orange-600 bg-orange-50 font-semibold text-orange-950 dark:border-orange-500 dark:bg-orange-950/70 dark:text-orange-100 ring-1 ring-orange-500/30'
+                      : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300'
                   }`}
                 >
-                  <CategoryIcon name={cat.icon} className="h-4 w-4 shrink-0" />
-                  <span>{cat.name}</span>
+                  <CategoryIcon name={cat.icon} className="h-3.5 w-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">{cat.name}</span>
                 </button>
               );
             })}
           </div>
         </div>
 
+        {/* Siapa yang Membayar: Compact Segmented Bar */}
         <div className="space-y-1.5">
-          <span className="block text-sm font-medium text-stone-800 dark:text-stone-200">
+          <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
             Siapa yang Membayar di Kasir?
           </span>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1 dark:bg-stone-800/80">
             <button
               type="button"
               onClick={() => setPayerId(myId)}
               aria-pressed={payerId === myId}
-              className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
+              className={`flex h-8 items-center justify-center truncate rounded-lg px-2 text-xs transition-all ${
                 payerId === myId
-                  ? 'border-orange-700 bg-orange-700 text-white dark:border-orange-600 dark:bg-orange-600'
-                  : 'border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200'
+                  ? 'bg-white font-bold text-stone-900 shadow-sm dark:bg-stone-900 dark:text-stone-100'
+                  : 'font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
               }`}
             >
-              Dibayar {myName} (Kamu)
+              <span className="truncate">Dibayar {myName} (Kamu)</span>
             </button>
             <button
               type="button"
               onClick={() => setPayerId(partnerId)}
               aria-pressed={payerId === partnerId}
-              className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
+              className={`flex h-8 items-center justify-center truncate rounded-lg px-2 text-xs transition-all ${
                 payerId === partnerId
-                  ? 'border-orange-700 bg-orange-700 text-white dark:border-orange-600 dark:bg-orange-600'
-                  : 'border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200'
+                  ? 'bg-white font-bold text-stone-900 shadow-sm dark:bg-stone-900 dark:text-stone-100'
+                  : 'font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
               }`}
             >
-              Dibayar {partnerName}
+              <span className="truncate">Dibayar {partnerName}</span>
             </button>
           </div>
         </div>
 
+        {/* Mode Split: Segmented Control */}
         <SplitModeSelector
           value={splitType}
           onChange={setSplitType}
@@ -272,10 +281,11 @@ export function AddTransactionDrawer({
           }}
         />
 
+        {/* Momen Date: Compact Select */}
         <div className="space-y-1.5">
           <label
             htmlFor="event-select"
-            className="block text-sm font-medium text-stone-800 dark:text-stone-200"
+            className="block text-xs font-semibold text-stone-700 dark:text-stone-300"
           >
             Momen (opsional)
           </label>
@@ -283,11 +293,9 @@ export function AddTransactionDrawer({
             id="event-select"
             value={eventId}
             onChange={(e) => setEventId(e.target.value)}
-            className="w-full min-h-[44px] rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+            className="w-full min-h-[40px] rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
           >
-            <option value="">
-              Harian Biasa (tanpa Momen)
-            </option>
+            <option value="">Harian Biasa (tanpa Momen)</option>
             {events.map((evt) => (
               <option key={evt.id} value={evt.id}>
                 Momen: {evt.title} {evt.is_active ? '(Sedang Berlangsung)' : ''}
@@ -296,28 +304,46 @@ export function AddTransactionDrawer({
           </select>
         </div>
 
-        <Input
-          label="Notes (opsional)"
-          placeholder="Contoh: Pesan 2 matcha latte + kentang"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-
-        <ReceiptUploader
-          receiptUrl={receiptUrl}
-          onChange={setReceiptUrl}
-          spaceId={space?.id || 'space-couple-uuid'}
-        />
+        {/* Catatan & Foto Struk Inline */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs font-semibold text-stone-700 dark:text-stone-300">
+            <label htmlFor="notes-input">Catatan & Struk (opsional)</label>
+            {receiptUrl && (
+              <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                ✓ Struk terlampir
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <input
+                id="notes-input"
+                type="text"
+                placeholder="Contoh: Pesan 2 matcha latte + kentang"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full min-h-[44px] rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-sm text-stone-900 placeholder:text-stone-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:placeholder:text-stone-500"
+              />
+            </div>
+            <ReceiptUploader
+              receiptUrl={receiptUrl}
+              onChange={setReceiptUrl}
+              spaceId={space?.id || 'space-couple-uuid'}
+              compact
+            />
+          </div>
+        </div>
 
         {formError && (
           <div
             role="alert"
-            className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-medium text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300"
+            className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300"
           >
             {formError}
           </div>
         )}
 
+        {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>
             Batal

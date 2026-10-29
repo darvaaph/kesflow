@@ -14,9 +14,13 @@ import {
   Pencil,
   AlertTriangle,
   UserMinus,
+  Bell,
+  BellOff,
+  Send,
 } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { formatRelativeDate } from '@/lib/format';
+import { isIosDevice, isRunningStandalone, isWebPushSupported } from '@/lib/pushClient';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -40,11 +44,21 @@ export default function SettingsPage() {
     clearSpaceTransactions,
     leaveCoupleSpace,
     logout,
+    isPushSubscribed,
+    pushPermission,
+    enablePushNotifications,
+    disablePushNotifications,
+    sendTestPushNotification,
   } = useKesflow();
 
   const [copied, setCopied] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [isMutationOpen, setIsMutationOpen] = useState(false);
+  const [isPushLoading, setIsPushLoading] = useState(false);
+  const [pushMessage, setPushMessage] = useState<{
+    text: string;
+    isError?: boolean;
+  } | null>(null);
   
   // Nickname sheet
   const [isEditNicknameOpen, setIsEditNicknameOpen] = useState(false);
@@ -98,6 +112,50 @@ export default function SettingsPage() {
       // Ignore clipboard failure
     }
   };
+
+  const handleTogglePush = async () => {
+    setIsPushLoading(true);
+    setPushMessage(null);
+    try {
+      if (isPushSubscribed) {
+        await disablePushNotifications();
+        setPushMessage({ text: 'Notifikasi HP berhasil dimatikan.' });
+      } else {
+        const ok = await enablePushNotifications();
+        setPushMessage({
+          text: ok
+            ? 'Notifikasi HP berhasil diaktifkan! ✨'
+            : 'Gagal mengaktifkan notifikasi. Pastikan aplikasi sudah di-Add to Home Screen dan izin diberikan.',
+          isError: !ok,
+        });
+      }
+    } catch (err) {
+      setPushMessage({
+        text: err instanceof Error ? err.message : 'Gagal mengatur notifikasi.',
+        isError: true,
+      });
+    } finally {
+      setIsPushLoading(false);
+    }
+  };
+
+  const handleTestPush = async () => {
+    setIsPushLoading(true);
+    setPushMessage(null);
+    try {
+      await sendTestPushNotification();
+      setPushMessage({
+        text: 'Tes notifikasi dikirim! Cek banner di atas layar atau bar notifikasi HP kamu.',
+      });
+    } finally {
+      setIsPushLoading(false);
+    }
+  };
+
+  const isIosNonStandalone =
+    typeof window !== 'undefined' && isIosDevice() && !isRunningStandalone();
+  const webPushSupported =
+    typeof window !== 'undefined' && isWebPushSupported();
 
   const handleConfirmReset = async () => {
     setIsResetting(true);
@@ -301,6 +359,90 @@ export default function SettingsPage() {
           <History className="h-4 w-4 text-orange-700 dark:text-orange-400" />
           <span>Buka Semua Aktivitas ({activityLogs.length})</span>
         </Button>
+      </Card>
+
+      {/* Notifikasi Pasangan (iOS & Android Push + Dynamic Island) */}
+      <Card className="p-5 space-y-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400" />
+            <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
+              Notifikasi Pasangan (iOS &amp; Android)
+            </h2>
+          </div>
+          {isPushSubscribed ? (
+            <Badge variant="emerald">Push Aktif</Badge>
+          ) : isIosNonStandalone ? (
+            <Badge variant="coral">Wajib Add to Home Screen</Badge>
+          ) : (
+            <Badge variant="neutral">In-App Aktif</Badge>
+          )}
+        </div>
+
+        <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+          Dapatkan notifikasi langsung ala <strong>Dynamic Island</strong> saat pasanganmu mencatat bill baru atau melakukan <strong>Settle Up</strong>, bahkan saat layar HP terkunci.
+        </p>
+
+        {isIosNonStandalone && (
+          <div className="rounded-xl border border-orange-200 bg-orange-50/70 p-3 text-xs text-stone-700 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-stone-300 leading-relaxed">
+            <strong className="text-orange-800 dark:text-orange-300">
+              Info Pengguna iPhone (Safari iOS):
+            </strong>{' '}
+            Apple mewajibkan aplikasi dipasang dulu ke Home Screen (ketuk ikon{' '}
+            <strong>Share</strong> &rarr; <strong>Add to Home Screen</strong>) agar notifikasi Lock Screen bisa diaktifkan.
+          </div>
+        )}
+
+        {pushPermission === 'denied' && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-3 text-xs text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300">
+            Izin notifikasi diblokir di pengaturan browser/HP kamu. Silakan izinkan kembali melalui pengaturan situs.
+          </div>
+        )}
+
+        {pushMessage && (
+          <div
+            className={`rounded-xl border p-3 text-xs font-medium ${
+              pushMessage.isError
+                ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300'
+            }`}
+          >
+            {pushMessage.text}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          <Button
+            type="button"
+            variant={isPushSubscribed ? 'outline' : 'primary'}
+            fullWidth
+            disabled={isPushLoading || (!webPushSupported && !isIosNonStandalone)}
+            onClick={handleTogglePush}
+          >
+            {isPushSubscribed ? (
+              <>
+                <BellOff className="h-4 w-4 text-stone-600 dark:text-stone-400" />
+                <span>Matikan Notifikasi HP</span>
+              </>
+            ) : (
+              <>
+                <Bell className="h-4 w-4" />
+                <span>Aktifkan Notifikasi HP</span>
+              </>
+            )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="secondary"
+            fullWidth
+            disabled={isPushLoading}
+            onClick={handleTestPush}
+          >
+            <Send className="h-4 w-4 text-orange-700 dark:text-orange-400" />
+            <span>Kirim Tes Notifikasi</span>
+          </Button>
+        </div>
       </Card>
 
       {/* PWA Install Guide */}

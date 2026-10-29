@@ -46,6 +46,19 @@ import {
 import { formatRupiah } from '@/lib/format';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { generateInviteCode } from '@/lib/utils';
+import {
+  getPublicVapidKey,
+  isWebPushSupported,
+  triggerLocalServiceWorkerNotification,
+  urlBase64ToUint8Array,
+} from '@/lib/pushClient';
+
+export interface LiveNotificationBannerItem {
+  id: string;
+  title: string;
+  body: string;
+  tone?: 'orange' | 'emerald';
+}
 
 const SPLIT_LABELS: Record<SplitType, string> = {
   EQUAL_50_50: 'Split 50:50',
@@ -88,7 +101,16 @@ interface KesflowContextValue {
   balance: RunningBalanceResult;
   netBalanceForCurrentUser: number;
   balanceBreakdownForA: BalanceBreakdown;
+  liveNotification: LiveNotificationBannerItem | null;
+  unreadActivityCount: number;
+  isPushSubscribed: boolean;
+  pushPermission: NotificationPermission | 'unsupported';
   // Actions
+  dismissLiveNotification: () => void;
+  markActivitiesAsRead: () => void;
+  enablePushNotifications: () => Promise<boolean>;
+  disablePushNotifications: () => Promise<void>;
+  sendTestPushNotification: () => Promise<boolean>;
   loginWithEmailOrPin: (
     email: string,
     displayName?: string,
@@ -174,6 +196,62 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
   const [activeUserId, setActiveUserId] = useState<string>(DEMO_USER_A_ID);
   const [state, setState] = useState<KesflowStateStorage>(() =>
     getInitialStorage(isMockMode)
+  );
+  const [liveNotification, setLiveNotification] =
+    useState<LiveNotificationBannerItem | null>(null);
+  const [lastSeenActivityIso, setLastSeenActivityIso] = useState<string>('');
+  const [isPushSubscribed, setIsPushSubscribed] = useState<boolean>(false);
+  const [pushPermission, setPushPermission] = useState<
+    NotificationPermission | 'unsupported'
+  >('default');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const savedSeen = localStorage.getItem('kesflow_last_seen_activity_v1');
+    if (savedSeen) {
+      setLastSeenActivityIso(savedSeen);
+    } else {
+      const now = new Date().toISOString();
+      localStorage.setItem('kesflow_last_seen_activity_v1', now);
+      setLastSeenActivityIso(now);
+    }
+
+    if (!isWebPushSupported()) {
+      setPushPermission('unsupported');
+      return;
+    }
+    setPushPermission(Notification.permission);
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then((sub) => {
+        setIsPushSubscribed(Boolean(sub));
+      })
+      .catch(() => {});
+  }, []);
+
+  const dismissLiveNotification = useCallback(() => {
+    setLiveNotification(null);
+  }, []);
+
+  const dispatchPartnerPush = useCallback(
+    async (
+      spaceId: string,
+      actorId: string,
+      title: string,
+      body: string,
+      url = '/'
+    ) => {
+      try {
+        await fetch('/api/push/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ spaceId, actorId, title, body, url }),
+        });
+      } catch {
+        // Ignore network errors on background push dispatch
+      }
+    },
+    []
   );
 
   const broadcastLocalState = useCallback((nextState: KesflowStateStorage) => {
@@ -385,7 +463,23 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         bc = new BroadcastChannel(CHANNEL_NAME);
         bc.onmessage = (ev) => {
           if (ev.data?.type === 'STATE_UPDATED' && ev.data.payload) {
-            setState(ev.data.payload as KesflowStateStorage);
+            const nextPayload = ev.data.payload as KesflowStateStorage;
+            const latestLog = nextPayload.activityLogs?.[0];
+            setState((prev) => {
+              const prevLatestId = prev.activityLogs?.[0]?.id;
+              if (latestLog && latestLog.id !== prevLatestId) {
+                setLiveNotification({
+                  id: latestLog.id,
+                  title: latestLog.title,
+                  body: latestLog.description,
+                  tone:
+                    latestLog.action_type === 'SETTLEMENT_ADDED'
+                      ? 'emerald'
+                      : 'orange',
+                });
+              }
+              return nextPayload;
+            });
           }
         };
       }
@@ -430,59 +524,6 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isMockMode, fetchSupabaseData]);
 
-  useEffect(() => {
-    if (isMockMode || !state.space?.id) return;
-
-    const supabase = createClient();
-    const spaceId = state.space.id;
-
-    const channel = supabase
-      .channel(`space-${spaceId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'transactions',
-          filter: `space_id=eq.${spaceId}`,
-        },
-        () => {
-          fetchSupabaseData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'settlements',
-          filter: `space_id=eq.${spaceId}`,
-        },
-        () => {
-          fetchSupabaseData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'quick_presets',
-          filter: `space_id=eq.${spaceId}`,
-        },
-        () => {
-          fetchSupabaseData();
-        }
-      )
-      .subscribe((status) => {
-        setIsRealtimeConnected(status === 'SUBSCRIBED');
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isMockMode, state.space?.id, fetchSupabaseData]);
-
   const { userAId, userBId } = useMemo(() => {
     const firstMember = state.members[0]?.user_id || DEMO_USER_A_ID;
     const secondMember = state.members[1]?.user_id || DEMO_USER_B_ID;
@@ -505,6 +546,101 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     );
     return found ?? null;
   }, [state.space, state.members.length, state.profiles, currentUser, activeUserId]);
+
+  useEffect(() => {
+    if (isMockMode || !state.space?.id) return;
+
+    const supabase = createClient();
+    const spaceId = state.space.id;
+
+    const channel = supabase
+      .channel(`space-${spaceId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions',
+          filter: `space_id=eq.${spaceId}`,
+        },
+        (payload) => {
+          fetchSupabaseData();
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const row = payload.new as {
+              id?: string;
+              payer_id?: string;
+              title?: string;
+              amount?: number;
+            };
+            const myId = currentUser?.id ?? activeUserId;
+            if (row.payer_id && row.payer_id !== myId) {
+              const pName = partnerUser?.display_name || 'Pasanganmu';
+              setLiveNotification({
+                id: `rt-tx-${row.id || Date.now()}`,
+                title: `${pName} mencatat: ${row.title || 'Pengeluaran'}`,
+                body: `Sebesar ${formatRupiah(Number(row.amount || 0))}`,
+                tone: 'orange',
+              });
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'settlements',
+          filter: `space_id=eq.${spaceId}`,
+        },
+        (payload) => {
+          fetchSupabaseData();
+          if (payload.new) {
+            const row = payload.new as {
+              id?: string;
+              from_user_id?: string;
+              amount?: number;
+            };
+            const myId = currentUser?.id ?? activeUserId;
+            if (row.from_user_id && row.from_user_id !== myId) {
+              const pName = partnerUser?.display_name || 'Pasanganmu';
+              setLiveNotification({
+                id: `rt-st-${row.id || Date.now()}`,
+                title: `${pName} melakukan Settle Up!`,
+                body: `Sebesar ${formatRupiah(Number(row.amount || 0))}`,
+                tone: 'emerald',
+              });
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'quick_presets',
+          filter: `space_id=eq.${spaceId}`,
+        },
+        () => {
+          fetchSupabaseData();
+        }
+      )
+      .subscribe((status) => {
+        setIsRealtimeConnected(status === 'SUBSCRIBED');
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [
+    isMockMode,
+    state.space?.id,
+    fetchSupabaseData,
+    currentUser?.id,
+    activeUserId,
+    partnerUser?.display_name,
+  ]);
 
   const balance = useMemo<RunningBalanceResult>(() => {
     return calculateRunningBalance(
@@ -979,6 +1115,12 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         };
         setState(nextState);
         broadcastLocalState(nextState);
+        setLiveNotification({
+          id: logItem.id,
+          title: `Tercatat: ${newTx.title}`,
+          body: `${formatRupiah(newTx.amount)} · ${SPLIT_LABELS[newTx.split_type]}`,
+          tone: 'orange',
+        });
         return newTx;
       }
 
@@ -1006,6 +1148,19 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         throw new Error(insertErr?.message || 'Gagal menyimpan transaksi.');
       }
 
+      setLiveNotification({
+        id: `local-tx-${data.id}`,
+        title: `Tercatat: ${data.title}`,
+        body: `${formatRupiah(Number(data.amount))} · ${SPLIT_LABELS[data.split_type]}`,
+        tone: 'orange',
+      });
+      void dispatchPartnerPush(
+        spaceId,
+        actorId,
+        `${actorName} mencatat: ${data.title}`,
+        `${formatRupiah(Number(data.amount))} (${SPLIT_LABELS[data.split_type]})`
+      );
+
       await fetchSupabaseData();
       return data;
     },
@@ -1017,6 +1172,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       isMockMode,
       broadcastLocalState,
       fetchSupabaseData,
+      dispatchPartnerPush,
     ]
   );
 
@@ -1316,6 +1472,12 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         };
         setState(nextState);
         broadcastLocalState(nextState);
+        setLiveNotification({
+          id: logItem.id,
+          title: logItem.title,
+          body: logItem.description,
+          tone: 'emerald',
+        });
         return newSettlement;
       }
 
@@ -1337,6 +1499,13 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         throw new Error(stErr?.message || 'Gagal mencatat settle up.');
       }
 
+      void dispatchPartnerPush(
+        spaceId,
+        actorId,
+        `${fromName} melakukan Settle Up!`,
+        `Membayar ${formatRupiah(amount)} ke ${toName}`
+      );
+
       await fetchSupabaseData();
       return data;
     },
@@ -1350,6 +1519,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       isMockMode,
       broadcastLocalState,
       fetchSupabaseData,
+      dispatchPartnerPush,
     ]
   );
 
@@ -1851,6 +2021,121 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     state.profiles,
   ]);
 
+  const unreadActivityCount = useMemo<number>(() => {
+    if (!lastSeenActivityIso) return 0;
+    const seenTs = new Date(lastSeenActivityIso).getTime();
+    const myId = currentUser?.id ?? activeUserId;
+    return computedActivityLogs.filter(
+      (l) => l.actor_id !== myId && new Date(l.created_at).getTime() > seenTs
+    ).length;
+  }, [computedActivityLogs, lastSeenActivityIso, currentUser?.id, activeUserId]);
+
+  const markActivitiesAsRead = useCallback(() => {
+    const now = new Date().toISOString();
+    setLastSeenActivityIso(now);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kesflow_last_seen_activity_v1', now);
+    }
+  }, []);
+
+  const enablePushNotifications = useCallback(async (): Promise<boolean> => {
+    if (typeof window === 'undefined' || !isWebPushSupported()) {
+      throw new Error(
+        'Perangkat atau browser ini belum mendukung Web Push. Di iPhone, pastikan Kesflow sudah di-Add to Home Screen (iOS 16.4+).'
+      );
+    }
+
+    const permission = await Notification.requestPermission();
+    setPushPermission(permission);
+
+    if (permission !== 'granted') {
+      throw new Error(
+        'Izin notifikasi ditolak. Aktifkan izin notifikasi Kesflow di Pengaturan HP kamu.'
+      );
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+    const vapidKey = urlBase64ToUint8Array(getPublicVapidKey());
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: vapidKey.buffer as ArrayBuffer,
+    });
+
+    const subJson = sub.toJSON();
+    const spaceId = state.space?.id ?? DEMO_SPACE_ID;
+    const userId = currentUser?.id ?? activeUserId;
+
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        spaceId,
+        userId,
+        subscription: subJson,
+        userAgent: navigator.userAgent,
+      }),
+    });
+
+    setIsPushSubscribed(true);
+    setLiveNotification({
+      id: `push-on-${Date.now()}`,
+      title: 'Notifikasi Pasangan Aktif!',
+      body: 'Kamu akan mendapat kabar saat pasangan mencatat pengeluaran.',
+      tone: 'emerald',
+    });
+    return true;
+  }, [state.space?.id, currentUser?.id, activeUserId]);
+
+  const disablePushNotifications = useCallback(async (): Promise<void> => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        const endpoint = sub.endpoint;
+        await sub.unsubscribe();
+        await fetch('/api/push/subscribe', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint }),
+        });
+      }
+      setIsPushSubscribed(false);
+    } catch {
+      // Ignore unsubscribe errors
+    }
+  }, []);
+
+  const sendTestPushNotification = useCallback(async (): Promise<boolean> => {
+    const myName = currentUser?.display_name || 'Kamu';
+    const partnerName = partnerUser?.display_name || 'Pasanganmu';
+    const title = `Tes Notifikasi Kesflow ❤️`;
+    const body = `Halo ${myName}! Notifikasi dari ${partnerName} siap tampil di layar HP-mu.`;
+
+    setLiveNotification({
+      id: `test-push-${Date.now()}`,
+      title,
+      body,
+      tone: 'orange',
+    });
+
+    const shownLocal = await triggerLocalServiceWorkerNotification(title, body);
+    if (state.space?.id && currentUser?.id) {
+      await fetch('/api/push/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          spaceId: state.space.id,
+          actorId: currentUser.id,
+          title,
+          body,
+          includeSelf: true,
+        }),
+      }).catch(() => {});
+    }
+    return shownLocal;
+  }, [currentUser?.display_name, currentUser?.id, partnerUser?.display_name, state.space?.id]);
+
   const value: KesflowContextValue = {
     isLoading,
     isAuthenticated,
@@ -1873,6 +2158,15 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     balance,
     netBalanceForCurrentUser,
     balanceBreakdownForA,
+    liveNotification,
+    unreadActivityCount,
+    isPushSubscribed,
+    pushPermission,
+    dismissLiveNotification,
+    markActivitiesAsRead,
+    enablePushNotifications,
+    disablePushNotifications,
+    sendTestPushNotification,
     loginWithEmailOrPin,
     loginWithGoogle,
     loginAsAccount,

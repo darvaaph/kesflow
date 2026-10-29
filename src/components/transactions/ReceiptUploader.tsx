@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { Camera, Trash2 } from 'lucide-react';
+import { Camera, Trash2, Loader2 } from 'lucide-react';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 
@@ -9,6 +9,7 @@ export interface ReceiptUploaderProps {
   receiptUrl: string | null;
   onChange: (url: string | null) => void;
   spaceId: string;
+  compact?: boolean;
 }
 
 /**
@@ -61,6 +62,7 @@ export function ReceiptUploader({
   receiptUrl,
   onChange,
   spaceId,
+  compact = false,
 }: ReceiptUploaderProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -112,6 +114,66 @@ export function ReceiptUploader({
       }
     }
   };
+
+  if (compact) {
+    return (
+      <div className="relative shrink-0">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          capture="environment"
+          onChange={handleFileChange}
+          className="sr-only"
+          id="receipt-file-input-compact"
+        />
+
+        {receiptUrl ? (
+          <div className="relative h-[44px] w-[44px] overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800 shadow-sm group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={receiptUrl}
+              alt="Foto struk"
+              className="h-full w-full object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => onChange(null)}
+              className="absolute inset-0 flex items-center justify-center bg-black/55 text-white transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+              title="Hapus foto struk"
+              aria-label="Hapus foto struk"
+            >
+              <Trash2 className="h-4 w-4 text-red-300" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={isUploading}
+            onClick={() => inputRef.current?.click()}
+            className="flex h-[44px] w-[44px] items-center justify-center rounded-xl border border-dashed border-stone-300 bg-stone-50 text-stone-600 transition-colors hover:border-orange-500 hover:bg-orange-50/50 hover:text-orange-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-orange-400 dark:hover:text-orange-400"
+            title="Ambil atau unggah foto struk"
+            aria-label="Ambil atau unggah foto struk"
+          >
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-orange-600 dark:text-orange-400" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
+          </button>
+        )}
+
+        {uploadError && (
+          <p
+            role="alert"
+            className="absolute left-0 top-full mt-1 whitespace-nowrap text-[11px] font-medium text-red-600 dark:text-red-400"
+          >
+            {uploadError}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">

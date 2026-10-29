@@ -1,14 +1,23 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Heart, Moon, Sun, UserPlus, Wifi, WifiOff } from 'lucide-react';
+import { Bell, Heart, Moon, Sun, UserPlus, Wifi, WifiOff } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { Avatar } from '@/components/ui/Avatar';
+import { ActivityMutationSheet } from '@/components/transactions/ActivityMutationSheet';
 
 export function Header() {
-  const { space, currentUser, partnerUser, isRealtimeConnected } = useKesflow();
+  const {
+    space,
+    currentUser,
+    partnerUser,
+    isRealtimeConnected,
+    unreadActivityCount,
+    markActivitiesAsRead,
+  } = useKesflow();
 
   const [isDark, setIsDark] = useState(false);
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -94,6 +103,27 @@ export function Header() {
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
+            onClick={() => {
+              markActivitiesAsRead();
+              setIsActivityOpen(true);
+            }}
+            aria-label={
+              unreadActivityCount > 0
+                ? `${unreadActivityCount} aktivitas baru dari pasangan`
+                : 'Lihat aktivitas pasangan'
+            }
+            className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
+          >
+            <Bell className="h-4 w-4" />
+            {unreadActivityCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-extrabold text-white shadow-sm">
+                {unreadActivityCount > 9 ? '9+' : unreadActivityCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={toggleTheme}
             aria-label={isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
             className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
@@ -102,6 +132,11 @@ export function Header() {
           </button>
         </div>
       </div>
+
+      <ActivityMutationSheet
+        isOpen={isActivityOpen}
+        onClose={() => setIsActivityOpen(false)}
+      />
     </header>
   );
 }

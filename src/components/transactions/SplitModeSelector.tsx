@@ -74,37 +74,51 @@ export function SplitModeSelector({
     onChangeCustomShares(autoA, clampedB);
   };
 
+  const currentMode = modes.find((m) => m.id === value) || modes[0];
+
   return (
-    <div className="space-y-3">
-      <p className="block text-sm font-medium text-stone-800 dark:text-stone-200">
-        Mode Split
-      </p>
-      <div className="grid grid-cols-2 gap-2">
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+          Bagi Beban (Split)
+        </span>
+        <span className="text-[11px] font-medium text-orange-700 dark:text-orange-400">
+          {currentMode.subtitle}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-4 gap-1.5 rounded-xl bg-stone-100 p-1 dark:bg-stone-800/80">
         {modes.map((m) => {
           const selected = value === m.id;
+          const shortTitle =
+            m.id === 'EQUAL_50_50'
+              ? '50:50'
+              : m.id === 'FULL_TREAT'
+              ? 'Treat'
+              : m.id === 'FULL_OWE'
+              ? 'Talangin'
+              : 'Custom';
+
           return (
             <button
               key={m.id}
               type="button"
               onClick={() => onChange(m.id)}
               aria-pressed={selected}
-              className={`flex min-h-[60px] flex-col justify-center rounded-xl border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
+              className={`h-8 rounded-lg text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
                 selected
-                  ? 'border-orange-700 bg-orange-50/90 text-stone-900 dark:border-orange-500 dark:bg-orange-950/50 dark:text-stone-100'
-                  : 'border-stone-300 bg-white text-stone-800 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200'
+                  ? 'bg-white text-stone-900 shadow-sm dark:bg-stone-900 dark:text-stone-100'
+                  : 'text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
               }`}
             >
-              <span className="text-xs font-bold">{m.title}</span>
-              <span className="mt-0.5 text-[11px] leading-snug text-stone-600 dark:text-stone-400">
-                {m.subtitle}
-              </span>
+              {shortTitle}
             </button>
           );
         })}
       </div>
 
       {value === 'CUSTOM' && (
-        <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-stone-200 bg-stone-50 p-3 dark:border-stone-800 dark:bg-stone-950">
+        <div className="grid grid-cols-2 gap-2.5 pt-1 rounded-xl border border-stone-200 bg-stone-50 p-2.5 dark:border-stone-800 dark:bg-stone-950">
           <Input
             label={`Porsi ${userAName}`}
             prefixText="Rp"

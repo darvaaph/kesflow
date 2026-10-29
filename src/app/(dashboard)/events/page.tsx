@@ -104,10 +104,9 @@ export default function EventsPage() {
       <div className="flex items-start gap-2.5 rounded-xl border border-stone-200/90 bg-stone-100/70 p-3 text-xs text-stone-700 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-300">
         <Info className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400 mt-0.5" />
         <p className="leading-relaxed">
-          <strong>Tips:</strong> Pilih salah satu momen di bawah untuk melihat
-          daftar transaksinya. Jika kalian sedang menjalani acara tersebut hari
-          ini, nyalakan tombol <strong>Sedang Berlangsung</strong> agar catatan
-          baru otomatis masuk ke momen itu.
+          <strong>Tips:</strong> Ketuk <strong>Lihat Rincian</strong> untuk melihat daftar transaksi acara di bawah.
+          Aktifkan <strong>Jadikan Acara Aktif</strong> jika kalian sedang menjalani acara tersebut hari
+          ini, agar setiap pengeluaran baru otomatis ditandai ke momen ini.
         </p>
       </div>
 
@@ -203,22 +202,27 @@ export default function EventsPage() {
 
                 <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-200/80 pt-3 dark:border-stone-800">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      type="button"
-                      variant={isSelected ? 'secondary' : 'outline'}
-                      size="sm"
-                      className="whitespace-nowrap"
-                      onClick={() => setSelectedEventId(evt.id)}
-                    >
-                      <FolderOpen className="h-3.5 w-3.5" />
-                      <span>
-                        {isSelected ? 'Sedang Dibuka' : 'Lihat Rincian'}
+                    {isSelected ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-950 dark:text-orange-200 py-1.5 px-3 rounded-xl bg-orange-100/80 dark:bg-orange-950/60 border border-orange-200/60 dark:border-orange-900/50">
+                        <FolderOpen className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
+                        <span>Rincian Ditampilkan</span>
                       </span>
-                    </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="whitespace-nowrap"
+                        onClick={() => setSelectedEventId(evt.id)}
+                      >
+                        <FolderOpen className="h-3.5 w-3.5 text-stone-500" />
+                        <span>Lihat Rincian</span>
+                      </Button>
+                    )}
 
                     <Button
                       type="button"
-                      variant="outline"
+                      variant={evt.is_active ? 'secondary' : 'outline'}
                       size="sm"
                       className="whitespace-nowrap"
                       onClick={() => toggleEventActive(evt.id)}
@@ -226,14 +230,14 @@ export default function EventsPage() {
                       <Radio
                         className={`h-3.5 w-3.5 ${
                           evt.is_active
-                            ? 'text-emerald-700 dark:text-emerald-400'
-                            : 'text-stone-500'
+                            ? 'text-emerald-700 dark:text-emerald-400 animate-pulse'
+                            : 'text-stone-400'
                         }`}
                       />
                       <span>
                         {evt.is_active
-                          ? 'Matikan Otomatis'
-                          : 'Set Berlangsung'}
+                          ? 'Nonaktifkan Acara'
+                          : 'Jadikan Acara Aktif'}
                       </span>
                     </Button>
                   </div>

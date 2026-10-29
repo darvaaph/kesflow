@@ -8,6 +8,8 @@ import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { AddTransactionDrawer } from '@/components/transactions/AddTransactionDrawer';
 import { getSkeletonForPath } from '@/components/ui/Skeleton';
+import { LiveToastBanner } from '@/components/ui/LiveToastBanner';
+import { IosInstallBanner } from '@/components/pwa/IosInstallBanner';
 
 function DashboardLayoutContent({
   children,
@@ -40,7 +42,9 @@ function DashboardLayoutContent({
         />
       )}
 
+      <LiveToastBanner />
       <Header />
+      <IosInstallBanner />
       <main className="mx-auto w-full max-w-md sm:max-w-lg md:max-w-xl flex-1 px-4 pt-4 pb-28">
         {isNavigating ? (
           <div className="animate-fadeIn">

@@ -123,6 +123,18 @@ create table if not exists public.quick_presets (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- 10. Tabel Push Subscriptions (Web Push Notification iOS & Android PWA)
+create table if not exists public.push_subscriptions (
+  id uuid default gen_random_uuid() primary key,
+  space_id uuid references public.spaces(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  endpoint text unique not null,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- ==============================================================================
 -- INDEXING UNTUK KECEPATAN QUERY
 -- ==============================================================================
@@ -143,6 +155,7 @@ alter table public.events enable row level security;
 alter table public.transactions enable row level security;
 alter table public.settlements enable row level security;
 alter table public.quick_presets enable row level security;
+alter table public.push_subscriptions enable row level security;
 
 -- Helper RLS function: Cek apakah user saat ini adalah member aktif space
 create or replace function public.is_member_of_space(_space_id uuid)
@@ -200,6 +213,10 @@ create policy "Access settlements" on public.settlements
 
 -- 8. Quick Presets Policies
 create policy "Access quick presets" on public.quick_presets
+  for all using (public.is_member_of_space(space_id));
+
+-- 9. Push Subscriptions Policies
+create policy "Access push subscriptions" on public.push_subscriptions
   for all using (public.is_member_of_space(space_id));
 
 -- ==============================================================================
