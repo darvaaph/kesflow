@@ -3,10 +3,10 @@
 import React, { useMemo, useState } from 'react';
 import {
   CalendarHeart,
-  FolderOpen,
+  ChevronDown,
+  ChevronUp,
   Info,
   Plus,
-  Radio,
   Trash2,
   X,
 } from 'lucide-react';
@@ -15,7 +15,6 @@ import { formatRupiah, formatShortDate } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
 import { TransactionList } from '@/components/dashboard/TransactionList';
 import { AddTransactionDrawer } from '@/components/transactions/AddTransactionDrawer';
 
@@ -78,7 +77,7 @@ export default function EventsPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header & Tombol Buat Album */}
+      {/* Header & Tombol Buat Momen */}
       <div className="flex items-center justify-between gap-2.5">
         <div className="min-w-0">
           <h1 className="text-lg font-bold text-stone-900 dark:text-stone-100">
@@ -100,13 +99,13 @@ export default function EventsPage() {
         </Button>
       </div>
 
-      {/* Kotak Penjelasan Singkat Cara Kerja Album Kencan (Dismissible) */}
+      {/* Kotak Tips Cara Kerja (Dismissible) */}
       {showTips && (
         <div className="relative flex items-center justify-between gap-2 rounded-xl border border-stone-200/90 bg-stone-100/70 p-2.5 text-xs text-stone-700 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-300">
           <div className="flex items-center gap-2 pr-2">
             <Info className="h-4 w-4 shrink-0 text-orange-700 dark:text-orange-400" />
             <p className="leading-snug">
-              <strong>Tips:</strong> Nyalakan <strong>Jadikan Aktif</strong> agar pengeluaran baru otomatis ditandai ke momen ini.
+              <strong>Tips:</strong> Klik kartu untuk membuka rincian transaksi. Nyalakan switch agar transaksi baru otomatis masuk ke momen itu.
             </p>
           </div>
           <button
@@ -120,6 +119,7 @@ export default function EventsPage() {
         </div>
       )}
 
+      {/* Form Pembuatan Momen Baru */}
       {showNewForm && (
         <Card elevated className="space-y-4 p-4">
           <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100">
@@ -155,6 +155,7 @@ export default function EventsPage() {
         </Card>
       )}
 
+      {/* Daftar Kartu Momen */}
       {events.length === 0 ? (
         <Card className="p-6 text-center space-y-2">
           <CalendarHeart className="mx-auto h-7 w-7 text-orange-700 dark:text-orange-400" />
@@ -174,93 +175,111 @@ export default function EventsPage() {
             return (
               <Card
                 key={evt.id}
-                className={`p-4 space-y-3 transition-colors ${
+                className={`overflow-hidden transition-all duration-200 ${
                   isSelected
-                    ? 'border-orange-700 bg-orange-50/70 dark:border-orange-500 dark:bg-orange-950/30'
-                    : ''
+                    ? 'border-orange-600 bg-orange-50/50 dark:border-orange-500/80 dark:bg-orange-950/20 shadow-sm'
+                    : 'hover:border-stone-300 dark:hover:border-stone-700'
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
+                {/* Header kartu yang bisa di-klik untuk membuka/menutup rincian (Accordion) */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedEventId(isSelected ? null : evt.id)
+                  }
+                  className="w-full p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 space-y-2.5 transition-colors"
+                  aria-expanded={isSelected}
+                  aria-label={`${evt.title}, ${
+                    isSelected ? 'tutup rincian' : 'buka rincian transaksi'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-base font-bold text-stone-900 dark:text-stone-100 truncate">
+                          {evt.title}
+                        </span>
+                        {evt.is_active && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
+                            Sedang Berlangsung
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-stone-500 dark:text-stone-400">
+                        {formatShortDate(evt.start_date)} &middot; {stat.count} transaksi
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400">
+                          Total Momen
+                        </p>
+                        <p className="text-sm font-extrabold text-stone-900 dark:text-stone-100 tabular-nums whitespace-nowrap">
+                          {formatRupiah(stat.amount)}
+                        </p>
+                      </div>
+
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+                        {isSelected ? (
+                          <ChevronUp className="h-4 w-4 text-orange-700 dark:text-orange-400" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Footer kartu: Toggle status aktif + tombol hapus */}
+                <div className="flex items-center justify-between border-t border-stone-200/80 bg-stone-50/60 px-4 py-2.5 dark:border-stone-800/80 dark:bg-stone-900/40">
+                  {/* Switch Toggle */}
                   <button
                     type="button"
-                    onClick={() => setSelectedEventId(evt.id)}
-                    className="flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 rounded-lg space-y-1"
+                    role="switch"
+                    aria-checked={evt.is_active}
+                    onClick={() => toggleEventActive(evt.id)}
+                    className="flex items-center gap-2 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 rounded-lg py-1 px-1.5 -ml-1.5 transition-colors"
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-base font-bold text-stone-900 dark:text-stone-100">
-                        {evt.title}
-                      </span>
-                      {evt.is_active && (
-                        <Badge variant="emerald">Sedang Berlangsung</Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-stone-600 dark:text-stone-400">
-                      Tanggal: {formatShortDate(evt.start_date)} &middot;{' '}
-                      {stat.count} transaksi
-                    </p>
-                  </button>
-
-                  <div className="text-right shrink-0">
-                    <p className="text-[11px] font-medium text-stone-600 dark:text-stone-400">
-                      Total Momen
-                    </p>
-                    <p className="text-sm font-extrabold text-stone-900 dark:text-stone-100 tabular-nums whitespace-nowrap">
-                      {formatRupiah(stat.amount)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-2 border-t border-stone-200/80 pt-2.5 dark:border-stone-800">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {isSelected ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-950 dark:text-orange-200 py-1 px-2.5 rounded-lg bg-orange-100/80 dark:bg-orange-950/60 border border-orange-200/60 dark:border-orange-900/50">
-                        <FolderOpen className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-                        <span>Rincian Terbuka</span>
-                      </span>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs px-2.5"
-                        onClick={() => setSelectedEventId(evt.id)}
-                      >
-                        <FolderOpen className="h-3.5 w-3.5 text-stone-500" />
-                        <span>Rincian</span>
-                      </Button>
-                    )}
-
-                    <Button
-                      type="button"
-                      variant={evt.is_active ? 'secondary' : 'outline'}
-                      size="sm"
-                      className="h-8 text-xs px-2.5"
-                      onClick={() => toggleEventActive(evt.id)}
+                    <div
+                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out ${
+                        evt.is_active
+                          ? 'bg-orange-700 dark:bg-orange-600'
+                          : 'bg-stone-300 dark:bg-stone-700'
+                      }`}
                     >
-                      <Radio
-                        className={`h-3.5 w-3.5 ${
-                          evt.is_active
-                            ? 'text-emerald-700 dark:text-emerald-400 animate-pulse'
-                            : 'text-stone-400'
+                      <span
+                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
+                          evt.is_active ? 'translate-x-4.5' : 'translate-x-1'
                         }`}
                       />
-                      <span>
-                        {evt.is_active ? 'Aktif' : 'Jadikan Aktif'}
-                      </span>
-                    </Button>
-                  </div>
+                    </div>
+                    <span className="text-xs font-medium text-stone-700 group-hover:text-stone-900 dark:text-stone-300 dark:group-hover:text-stone-100">
+                      {evt.is_active
+                        ? 'Otomatis catat ke sini'
+                        : 'Jadikan momen aktif'}
+                    </span>
+                  </button>
 
+                  {/* Tombol Hapus */}
                   <button
                     type="button"
                     onClick={() => {
-                      deleteDateEvent(evt.id);
-                      if (selectedEventId === evt.id) {
-                        setSelectedEventId(null);
+                      if (
+                        window.confirm(
+                          `Hapus momen "${evt.title}"? Transaksi di dalamnya tetap tersimpan, hanya tag momennya yang dilepas.`
+                        )
+                      ) {
+                        deleteDateEvent(evt.id);
+                        if (selectedEventId === evt.id) {
+                          setSelectedEventId(null);
+                        }
                       }
                     }}
                     aria-label={`Hapus momen ${evt.title}`}
                     title="Hapus momen"
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50 dark:hover:text-red-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50 dark:hover:text-red-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -271,15 +290,16 @@ export default function EventsPage() {
         </div>
       )}
 
+      {/* Bagian Rincian Transaksi Momen Terpilih */}
       {selectedEvent && (
         <section className="space-y-3 pt-2 border-t border-stone-200 dark:border-stone-800">
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5 min-w-0">
               <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100 truncate">
-                Rincian: &ldquo;{selectedEvent.title}&rdquo;
+                Rincian Transaksi: &ldquo;{selectedEvent.title}&rdquo;
               </h2>
               <p className="text-xs text-stone-600 dark:text-stone-400">
-                Total biaya:{' '}
+                Total biaya acara:{' '}
                 <strong className="text-orange-800 dark:text-orange-300 tabular-nums whitespace-nowrap">
                   {formatRupiah(
                     eventStats.get(selectedEvent.id)?.amount ?? 0
@@ -295,7 +315,7 @@ export default function EventsPage() {
               onClick={() => setIsAddTxOpen(true)}
             >
               <Plus className="h-3.5 w-3.5 text-orange-700 dark:text-orange-400" />
-              <span>Catat di Momen</span>
+              <span>Catat di Momen Ini</span>
             </Button>
           </div>
 
