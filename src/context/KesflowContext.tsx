@@ -89,7 +89,11 @@ interface KesflowContextValue {
   netBalanceForCurrentUser: number;
   balanceBreakdownForA: BalanceBreakdown;
   // Actions
-  loginWithEmailOrPin: (email: string, displayName?: string) => Promise<void>;
+  loginWithEmailOrPin: (
+    email: string,
+    displayName?: string,
+    pin?: string
+  ) => Promise<{ isInstantLogin: boolean }>;
   loginAsAccount: (userId: string) => void;
   logout: () => Promise<void>;
   switchDemoActiveUser: (userId: string) => void;
@@ -483,7 +487,11 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
   );
 
   const loginWithEmailOrPin = useCallback(
-    async (email: string, displayName?: string) => {
+    async (
+      email: string,
+      displayName?: string,
+      pin?: string
+    ): Promise<{ isInstantLogin: boolean }> => {
       setError(null);
       if (isMockMode) {
         const cleanEmail = email.trim().toLowerCase();
@@ -496,7 +504,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
 
         if (existingProfile) {
           switchDemoActiveUser(existingProfile.id);
-          return;
+          return { isInstantLogin: true };
         }
 
         const name =
@@ -525,23 +533,68 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         setState(nextState);
         broadcastLocalState(nextState);
         switchDemoActiveUser(DEMO_USER_A_ID);
-        return;
+        return { isInstantLogin: true };
       }
 
       const supabase = createClient();
+      const cleanEmail = email.trim();
+
+      // Jika menggunakan PIN / Password (minimal 4 karakter)
+      if (pin && pin.trim().length >= 4) {
+        const cleanPin = pin.trim();
+        const { error: signInErr } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: cleanPin,
+        });
+
+        if (signInErr) {
+          // Jika belum terdaftar, otomatis buatkan akun baru
+          const { data: signUpData, error: signUpErr } =
+            await supabase.auth.signUp({
+              email: cleanEmail,
+              password: cleanPin,
+              options: {
+                data: {
+                  full_name: displayName || cleanEmail.split('@')[0],
+                },
+              },
+            });
+
+          if (signUpErr) {
+            throw new Error(signUpErr.message);
+          }
+
+          if (signUpData.session) {
+            await fetchSupabaseData();
+            return { isInstantLogin: true };
+          }
+        } else {
+          await fetchSupabaseData();
+          return { isInstantLogin: true };
+        }
+      }
+
+      // Opsi OTP / Magic Link jika tanpa PIN
       const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
+        email: cleanEmail,
         options: {
           data: {
-            full_name: displayName || email.split('@')[0],
+            full_name: displayName || cleanEmail.split('@')[0],
           },
         },
       });
       if (otpError) {
         throw new Error(otpError.message);
       }
+      return { isInstantLogin: false };
     },
-    [isMockMode, state, broadcastLocalState, switchDemoActiveUser]
+    [
+      isMockMode,
+      state,
+      broadcastLocalState,
+      switchDemoActiveUser,
+      fetchSupabaseData,
+    ]
   );
 
   const logout = useCallback(async () => {

@@ -63,8 +63,12 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
     try {
-      await loginWithEmailOrPin(email, displayName);
-      if (isMockMode) {
+      const res = await loginWithEmailOrPin(
+        email,
+        displayName,
+        mode === 'pin' ? pin : undefined
+      );
+      if (isMockMode || res?.isInstantLogin) {
         router.push('/');
       } else {
         setMagicLinkSent(true);
