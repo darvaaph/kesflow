@@ -437,7 +437,7 @@ export function AddTransactionDrawer({
       }
       description={
         viewStep === 'ITEMIZED'
-          ? 'Pilih pemesan tiap menu.'
+          ? 'Tandai tiap menu itu punya siapa.'
           : isEditMode
           ? 'Perubahan otomatis menghitung ulang saldo berjalan kalian.'
           : 'Transaksi otomatis tersinkron ke layar pasanganmu.'
@@ -683,7 +683,9 @@ export function AddTransactionDrawer({
           {/* 5. Siapa yang Membayar di Kasir */}
           <div className="space-y-1.5">
             <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
-              Siapa yang Membayar di Kasir?
+              {entryMode === 'ITEMIZED'
+                ? 'Siapa yang Bayar ke Kasir?'
+                : 'Siapa yang Membayar di Kasir?'}
             </span>
             <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-stone-100 p-1.5 dark:bg-stone-800/80">
               <button
@@ -717,6 +719,24 @@ export function AddTransactionDrawer({
                 </span>
               </button>
             </div>
+            {entryMode === 'ITEMIZED' && numericAmount > 0 && (
+              <p className="rounded-xl bg-stone-100 px-3 py-2 text-[11px] leading-relaxed text-stone-600 dark:bg-stone-800/70 dark:text-stone-300">
+                {(() => {
+                  const payerIsA = payerId === userAId;
+                  const owed = payerIsA ? customShareB : customShareA;
+                  return owed > 0 ? (
+                    <>
+                      <b>{formatShortName(payerName, 10)}</b> bayar{' '}
+                      <b>Rp {formatNumberInput(numericAmount)}</b> dulu di kasir.{' '}
+                      <b>{formatShortName(otherName, 10)}</b> tinggal ganti{' '}
+                      <b>Rp {formatNumberInput(owed)}</b> (sesuai menunya).
+                    </>
+                  ) : (
+                    <>Semua menu milik pembayar, tidak ada yang perlu diganti.</>
+                  );
+                })()}
+              </p>
+            )}
           </div>
 
           {/* 6. Momen Date & Catatan Tambahan */}
