@@ -31,6 +31,7 @@ import { SplitModeSelector } from './SplitModeSelector';
 import { uploadAndCompressReceipt } from './ReceiptUploader';
 import {
   ItemizedBillBuilder,
+  ItemizedBillFooter,
   ItemizedSummaryCard,
 } from './ItemizedBillBuilder';
 
@@ -412,6 +413,18 @@ export function AddTransactionDrawer({
     <BottomSheet
       isOpen={isOpen}
       onClose={onClose}
+      footer={
+        viewStep === 'ITEMIZED' ? (
+          <ItemizedBillFooter
+            items={itemizedItems}
+            extraFee={extraFee}
+            isMeUserA={isMeUserA}
+            myName={myName}
+            partnerName={partnerName}
+            onDone={() => setViewStep('MAIN')}
+          />
+        ) : undefined
+      }
       onBack={
         viewStep === 'ITEMIZED' ? () => setViewStep('MAIN') : undefined
       }
@@ -424,7 +437,7 @@ export function AddTransactionDrawer({
       }
       description={
         viewStep === 'ITEMIZED'
-          ? 'Pilih siapa yang pesan tiap menu, total porsi dihitung otomatis.'
+          ? 'Pilih pemesan tiap menu.'
           : isEditMode
           ? 'Perubahan otomatis menghitung ulang saldo berjalan kalian.'
           : 'Transaksi otomatis tersinkron ke layar pasanganmu.'
@@ -448,7 +461,6 @@ export function AddTransactionDrawer({
           myName={myName}
           partnerName={partnerName}
           onChange={handleItemizedChange}
-          onDone={() => setViewStep('MAIN')}
           onTriggerScan={() => scanInputRef.current?.click()}
           isScanning={isScanningReceipt}
           scanFeedback={scanFeedback}

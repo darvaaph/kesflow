@@ -9,6 +9,8 @@ export interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onBack?: () => void;
+  /** Konten tetap di bawah sheet (di luar area scroll), mis. total & tombol aksi. */
+  footer?: React.ReactNode;
   title: string;
   description?: string;
   children: React.ReactNode;
@@ -19,6 +21,7 @@ export function BottomSheet({
   isOpen,
   onClose,
   onBack,
+  footer,
   title,
   description,
   children,
@@ -126,7 +129,7 @@ export function BottomSheet({
             : undefined
         }
         className={cn(
-          'relative z-10 w-full max-w-md max-h-[90dvh] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-2xl bg-warm-bg dark:bg-stone-900 border-t sm:border border-stone-200 dark:border-stone-800 p-5 pb-safe shadow-warm will-change-transform',
+          'relative z-10 w-full max-w-md max-h-[90dvh] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl bg-warm-bg dark:bg-stone-900 border-t sm:border border-stone-200 dark:border-stone-800 shadow-warm will-change-transform',
           closing
             ? 'motion-safe:animate-sheet-down sm:motion-safe:animate-modal-out'
             : 'motion-safe:animate-sheet-up sm:motion-safe:animate-modal-in',
@@ -137,7 +140,7 @@ export function BottomSheet({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="cursor-grab active:cursor-grabbing touch-none select-none"
+          className="shrink-0 cursor-grab active:cursor-grabbing touch-none select-none px-5 pt-5"
         >
           <div className="mx-auto mb-3 h-1.5 w-11 rounded-full bg-stone-300 dark:bg-stone-700 sm:hidden" />
           <div className="flex items-start justify-between gap-2.5 border-b border-stone-200 dark:border-stone-800 pb-3 mb-4">
@@ -176,7 +179,19 @@ export function BottomSheet({
             </button>
           </div>
         </div>
-        {isOpen ? children : cachedChildren}
+        <div
+          className={cn(
+            'min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 [color-scheme:light] dark:[color-scheme:dark]',
+            footer ? 'pb-3' : 'pb-5 pb-safe'
+          )}
+        >
+          {isOpen ? children : cachedChildren}
+        </div>
+        {footer && (
+          <div className="shrink-0 border-t border-stone-200 bg-warm-bg px-5 pt-3 pb-safe dark:border-stone-800 dark:bg-stone-900">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body

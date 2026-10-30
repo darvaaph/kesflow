@@ -10,7 +10,6 @@ import {
   Plus,
   Sparkles,
   Trash2,
-  Users,
 } from 'lucide-react';
 import {
   BillLineItem,
@@ -33,7 +32,6 @@ export interface ItemizedBillBuilderProps {
   myName: string;
   partnerName: string;
   onChange: (nextData: ItemizedBillData) => void;
-  onDone: () => void;
   onTriggerScan?: () => void;
   isScanning?: boolean;
   scanFeedback?: { text: string; isError?: boolean } | null;
@@ -46,7 +44,6 @@ export function ItemizedBillBuilder({
   myName,
   partnerName,
   onChange,
-  onDone,
   onTriggerScan,
   isScanning = false,
   scanFeedback = null,
@@ -58,9 +55,6 @@ export function ItemizedBillBuilder({
   const partnerAssignee: ItemAssignee = isMeUserA ? 'B' : 'A';
 
   const calc = calculateItemizedSplit({ items, extraFee });
-  const myShare = isMeUserA ? calc.shareA : calc.shareB;
-  const partnerShare = isMeUserA ? calc.shareB : calc.shareA;
-
   const handleUpdateItem = (
     id: string,
     patch: Partial<Omit<BillLineItem, 'id'>>
@@ -76,7 +70,7 @@ export function ItemizedBillBuilder({
       id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       name: '',
       price: 0,
-      assignedTo: myAssignee,
+      assignedTo: items[items.length - 1]?.assignedTo ?? myAssignee,
     };
     onChange({ items: [...items, newItem], extraFee });
   };
@@ -123,33 +117,17 @@ export function ItemizedBillBuilder({
             type="button"
             disabled={isScanning}
             onClick={onTriggerScan}
-            className="flex w-full min-h-[44px] items-center justify-between gap-2 rounded-2xl border border-dashed border-orange-300 bg-orange-50/70 px-3.5 py-2 text-left transition-all hover:bg-orange-100/70 dark:border-orange-800/70 dark:bg-orange-950/30"
+            className="flex w-full min-h-[40px] items-center justify-center gap-2 rounded-xl border border-dashed border-orange-300 bg-orange-50/60 px-3 py-2 text-xs font-bold text-orange-900 transition-colors hover:bg-orange-100/70 dark:border-orange-800/70 dark:bg-orange-950/30 dark:text-orange-200"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-600 text-white">
-                {isScanning ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Camera className="h-4 w-4" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="flex items-center gap-1 text-xs font-bold text-orange-950 dark:text-orange-200">
-                  <span>
-                    {isScanning
-                      ? 'Membaca Struk dengan AI...'
-                      : 'Malas Ketik Satu-Satu? Scan Struk AI'}
-                  </span>
-                  <Sparkles className="h-3 w-3 shrink-0 text-orange-600 dark:text-orange-400" />
-                </p>
-                <p className="truncate text-[11px] text-stone-600 dark:text-stone-400">
-                  Otomatis deteksi daftar menu & pajak dari foto struk
-                </p>
-              </div>
-            </div>
-            <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-orange-800 ring-1 ring-orange-200 dark:bg-stone-800 dark:text-orange-300 dark:ring-orange-800/60">
-              {isScanning ? 'Proses...' : 'Foto Struk'}
+            {isScanning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
+            <span>
+              {isScanning ? 'Membaca struk...' : 'Isi otomatis dari foto struk'}
             </span>
+            <Sparkles className="h-3 w-3 shrink-0 text-orange-600 dark:text-orange-400" />
           </button>
 
           {scanFeedback && (
@@ -185,7 +163,8 @@ export function ItemizedBillBuilder({
                 </span>
                 <input
                   type="text"
-                  placeholder={`Nama menu ${idx + 1} (cth: Nasi Bebek / Kopi)`}
+                  placeholder="Nama menu"
+                  enterKeyHint="next"
                   value={item.name}
                   onChange={(e) =>
                     handleUpdateItem(item.id, { name: e.target.value })
@@ -203,77 +182,53 @@ export function ItemizedBillBuilder({
                 </button>
               </div>
 
-              {/* Baris 2: Input Harga Menu yang Jelas & Lega */}
-              <div className="flex items-center justify-between gap-3 pl-8">
-                <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
-                  Harga Menu
-                </span>
-                <div className="relative flex-1 max-w-[200px]">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-stone-400">
+              {/* Baris 2: Harga + Pemilih Pemilik dalam satu baris (hemat tinggi, jempol nyaman) */}
+              <div className="flex items-center gap-2 pl-8">
+                <div className="relative w-[7.25rem] shrink-0">
+                  <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-stone-400">
                     Rp
                   </span>
                   <input
                     type="text"
                     inputMode="numeric"
-                    placeholder="25.000"
+                    enterKeyHint="next"
+                    placeholder="0"
                     value={item.price > 0 ? formatNumberInput(item.price) : ''}
                     onChange={(e) => {
                       const num = parseNumberInput(e.target.value);
                       handleUpdateItem(item.id, { price: num });
                     }}
                     aria-label={`Harga menu ${idx + 1}`}
-                    className="w-full rounded-xl border border-stone-200 bg-stone-50/80 pl-8 pr-3 py-1.5 text-right text-base font-bold tabular-nums text-stone-900 placeholder:font-normal placeholder:text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                    className="h-10 w-full rounded-xl border border-stone-200 bg-stone-50/80 pl-7 pr-2 text-right text-base font-bold tabular-nums text-stone-900 placeholder:font-normal placeholder:text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
                   />
                 </div>
-              </div>
-
-              {/* Baris 3: Pemilih Pemilik Menu (Touch Target Nyaman 36px) */}
-              <div className="grid grid-cols-3 gap-1.5 pt-0.5">
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleUpdateItem(item.id, { assignedTo: myAssignee })
-                  }
-                  aria-pressed={isMine}
-                  className={`h-9 rounded-xl text-xs font-bold transition-all truncate px-2 ${
-                    isMine
-                      ? 'bg-orange-600 text-white shadow-xs dark:bg-orange-500'
-                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200/70 dark:bg-stone-900 dark:text-stone-400'
-                  }`}
+                <div
+                  role="group"
+                  aria-label={`Pemesan menu ${idx + 1}`}
+                  className="grid min-w-0 flex-1 grid-cols-3 gap-0.5 rounded-xl bg-stone-100 p-0.5 dark:bg-stone-900"
                 >
-                  {shortMyName} (Kamu)
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleUpdateItem(item.id, {
-                      assignedTo: partnerAssignee,
-                    })
-                  }
-                  aria-pressed={isPartner}
-                  className={`h-9 rounded-xl text-xs font-bold transition-all truncate px-2 ${
-                    isPartner
-                      ? 'bg-orange-600 text-white shadow-xs dark:bg-orange-500'
-                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200/70 dark:bg-stone-900 dark:text-stone-400'
-                  }`}
-                >
-                  {shortPartnerName}
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleUpdateItem(item.id, { assignedTo: 'BOTH' })
-                  }
-                  aria-pressed={isBoth}
-                  className={`inline-flex h-9 items-center justify-center gap-1 rounded-xl text-xs font-bold transition-all truncate px-2 ${
-                    isBoth
-                      ? 'bg-emerald-700 text-white shadow-xs dark:bg-emerald-600'
-                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200/70 dark:bg-stone-900 dark:text-stone-400'
-                  }`}
-                >
-                  <Users className="h-3.5 w-3.5 shrink-0" />
-                  <span>50:50</span>
-                </button>
+                  {[
+                    { key: myAssignee, label: shortMyName, on: isMine, tone: 'bg-orange-600 text-white' },
+                    { key: partnerAssignee, label: shortPartnerName, on: isPartner, tone: 'bg-orange-600 text-white' },
+                    { key: 'BOTH' as ItemAssignee, label: 'Berdua', on: isBoth, tone: 'bg-emerald-700 text-white' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() =>
+                        handleUpdateItem(item.id, { assignedTo: opt.key })
+                      }
+                      aria-pressed={opt.on}
+                      className={`h-9 min-w-0 truncate rounded-[10px] px-1 text-[11px] font-bold transition-all ${
+                        opt.on
+                          ? opt.tone
+                          : 'text-stone-600 hover:bg-stone-200/70 dark:text-stone-400'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           );
@@ -363,39 +318,63 @@ export function ItemizedBillBuilder({
         )}
       </div>
 
-      {/* Sticky Bottom Summary & Confirm CTA */}
-      <div className="sticky bottom-0 z-10 -mx-1 rounded-2xl border border-orange-200/90 bg-warm-bg/95 p-3 shadow-lg backdrop-blur-md dark:border-orange-900/60 dark:bg-stone-900/95 space-y-2.5">
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-xl bg-white px-3 py-2 border border-stone-200/80 dark:bg-stone-950 dark:border-stone-800">
-            <span className="block text-[11px] text-stone-500 dark:text-stone-400 truncate">
-              Porsi {shortMyName} (Kamu)
-            </span>
-            <span className="text-sm font-bold tabular-nums text-stone-900 dark:text-stone-100">
-              {formatRupiah(myShare)}
-            </span>
-          </div>
-          <div className="rounded-xl bg-white px-3 py-2 border border-stone-200/80 dark:bg-stone-950 dark:border-stone-800">
-            <span className="block text-[11px] text-stone-500 dark:text-stone-400 truncate">
-              Porsi {shortPartnerName}
-            </span>
-            <span className="text-sm font-bold tabular-nums text-stone-900 dark:text-stone-100">
-              {formatRupiah(partnerShare)}
-            </span>
-          </div>
-        </div>
+    </div>
+  );
+}
 
-        <Button
-          type="button"
-          variant="primary"
-          onClick={onDone}
-          className="w-full"
-        >
-          <Check className="mr-1.5 h-4 w-4" />
-          {calc.grandTotal > 0
-            ? `Selesai · Terapkan ${formatRupiah(calc.grandTotal)}`
-            : 'Kembali ke Form Utama'}
-        </Button>
-      </div>
+export interface ItemizedBillFooterProps {
+  items: BillLineItem[];
+  extraFee: number;
+  isMeUserA: boolean;
+  myName: string;
+  partnerName: string;
+  onDone: () => void;
+}
+
+/** Footer ringkas yang menempel di luar area scroll sheet. */
+export function ItemizedBillFooter({
+  items,
+  extraFee,
+  isMeUserA,
+  myName,
+  partnerName,
+  onDone,
+}: ItemizedBillFooterProps) {
+  const calc = calculateItemizedSplit({ items, extraFee });
+  const myShare = isMeUserA ? calc.shareA : calc.shareB;
+  const partnerShare = isMeUserA ? calc.shareB : calc.shareA;
+  const canApply = calc.grandTotal > 0;
+
+  return (
+    <div className="space-y-2">
+      {canApply && (
+        <div className="flex items-center justify-between gap-2 text-[11px] text-stone-600 dark:text-stone-400">
+          <span className="min-w-0 truncate">
+            {formatShortName(myName, 8)}{' '}
+            <b className="tabular-nums text-stone-900 dark:text-stone-100">
+              {formatRupiah(myShare)}
+            </b>
+          </span>
+          <span className="min-w-0 truncate text-right">
+            {formatShortName(partnerName, 8)}{' '}
+            <b className="tabular-nums text-stone-900 dark:text-stone-100">
+              {formatRupiah(partnerShare)}
+            </b>
+          </span>
+        </div>
+      )}
+      <Button
+        type="button"
+        variant="primary"
+        onClick={onDone}
+        disabled={!canApply}
+        className="w-full"
+      >
+        <Check className="mr-1.5 h-4 w-4" />
+        {canApply
+          ? `Selesai · ${formatRupiah(calc.grandTotal)}`
+          : 'Isi harga menu dulu'}
+      </Button>
     </div>
   );
 }
