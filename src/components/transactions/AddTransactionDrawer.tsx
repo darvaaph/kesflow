@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Loader2, Sparkles } from 'lucide-react';
+import {
+  Camera,
+  ListChecks,
+  Loader2,
+  Sparkles,
+  Trash2,
+  Zap,
+} from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { SplitType, Transaction } from '@/types';
 import {
@@ -21,8 +28,11 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { SplitModeSelector } from './SplitModeSelector';
-import { ReceiptUploader, uploadAndCompressReceipt } from './ReceiptUploader';
-import { ItemizedBillBuilder } from './ItemizedBillBuilder';
+import { uploadAndCompressReceipt } from './ReceiptUploader';
+import {
+  ItemizedBillBuilder,
+  ItemizedSummaryCard,
+} from './ItemizedBillBuilder';
 
 export interface AddTransactionDrawerProps {
   isOpen: boolean;
@@ -78,8 +88,10 @@ export function AddTransactionDrawer({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // State Rincian Menu (Itemized Split) & AI OCR
-  const [isItemizedOpen, setIsItemizedOpen] = useState(false);
+  // Navigasi Sub-Halaman ('MAIN' = Form Utama, 'ITEMIZED' = Halaman Khusus Rincian Menu)
+  const [viewStep, setViewStep] = useState<'MAIN' | 'ITEMIZED'>('MAIN');
+  // Mode Perhitungan ('DIRECT' = 1 Total Langsung, 'ITEMIZED' = Bagi per Menu)
+  const [entryMode, setEntryMode] = useState<'DIRECT' | 'ITEMIZED'>('DIRECT');
   const [itemizedItems, setItemizedItems] = useState<BillLineItem[]>([]);
   const [extraFee, setExtraFee] = useState(0);
   const [isScanningReceipt, setIsScanningReceipt] = useState(false);
@@ -94,6 +106,8 @@ export function AddTransactionDrawer({
 
     setFormError(null);
     setScanFeedback(null);
+    setViewStep('MAIN');
+
     if (initialTransaction) {
       setTitle(initialTransaction.title);
       setAmountDisplay(formatNumberInput(Number(initialTransaction.amount)));
@@ -110,11 +124,11 @@ export function AddTransactionDrawer({
       if (parsedNotes.itemized && parsedNotes.itemized.items.length > 0) {
         setItemizedItems(parsedNotes.itemized.items);
         setExtraFee(parsedNotes.itemized.extraFee);
-        setIsItemizedOpen(true);
+        setEntryMode('ITEMIZED');
       } else {
         setItemizedItems([]);
         setExtraFee(0);
-        setIsItemizedOpen(false);
+        setEntryMode('DIRECT');
       }
       setReceiptUrl(initialTransaction.receipt_url || null);
     } else {
@@ -131,7 +145,7 @@ export function AddTransactionDrawer({
       setReceiptUrl(null);
       setItemizedItems([]);
       setExtraFee(0);
-      setIsItemizedOpen(false);
+      setEntryMode('DIRECT');
     }
   }, [isOpen, initialTransaction, myId, defaultEventId, events, categories]);
 
@@ -145,10 +159,8 @@ export function AddTransactionDrawer({
     setCustomShareB(val - Math.round(val / 2));
   };
 
-  const handleToggleItemized = () => {
-    const nextOpen = !isItemizedOpen;
-    setIsItemizedOpen(nextOpen);
-    if (nextOpen && itemizedItems.length === 0) {
+  const ensureInitialMenuRows = () => {
+    if (itemizedItems.length === 0) {
       const myAssignee = isMeUserA ? 'A' : 'B';
       const partnerAssignee = isMeUserA ? 'B' : 'A';
       setItemizedItems([
@@ -168,6 +180,35 @@ export function AddTransactionDrawer({
     }
   };
 
+  const handleSelectEntryMode = (mode: 'DIRECT' | 'ITEMIZED') => {
+    setFormError(null);
+    if (mode === 'DIRECT') {
+      setEntryMode('DIRECT');
+      return;
+    }
+
+    ensureInitialMenuRows();
+    setEntryMode('ITEMIZED');
+    setSplitType('CUSTOM');
+
+    const hasPricedItems = itemizedItems.some((it) => it.price > 0);
+    if (!hasPricedItems) {
+      setViewStep('ITEMIZED');
+    } else {
+      const calc = calculateItemizedSplit({ items: itemizedItems, extraFee });
+      setAmountDisplay(formatNumberInput(calc.grandTotal));
+      setCustomShareA(calc.shareA);
+      setCustomShareB(calc.shareB);
+    }
+  };
+
+  const handleOpenItemizedEditor = () => {
+    ensureInitialMenuRows();
+    setEntryMode('ITEMIZED');
+    setSplitType('CUSTOM');
+    setViewStep('ITEMIZED');
+  };
+
   const handleItemizedChange = (nextData: ItemizedBillData) => {
     setItemizedItems(nextData.items);
     setExtraFee(nextData.extraFee);
@@ -178,6 +219,10 @@ export function AddTransactionDrawer({
       setCustomShareA(calc.shareA);
       setCustomShareB(calc.shareB);
       setSplitType('CUSTOM');
+    } else {
+      setAmountDisplay('');
+      setCustomShareA(0);
+      setCustomShareB(0);
     }
   };
 
@@ -250,16 +295,18 @@ export function AddTransactionDrawer({
             assignedTo: 'BOTH',
           })
         );
-        setIsItemizedOpen(true);
+        setEntryMode('ITEMIZED');
         handleItemizedChange({
           items: builtItems,
           extraFee: scannedExtra,
         });
+        setViewStep('ITEMIZED');
         setScanFeedback({
           text: `Berhasil membaca ${builtItems.length} menu dari struk! Pilih pemilik tiap menu di bawah.`,
         });
       } else if (resData.grandTotal && resData.grandTotal > 0) {
         const total = Math.round(resData.grandTotal);
+        setEntryMode('DIRECT');
         setAmountDisplay(formatNumberInput(total));
         setCustomShareA(Math.round(total / 2));
         setCustomShareB(total - Math.round(total / 2));
@@ -297,6 +344,13 @@ export function AddTransactionDrawer({
       return;
     }
 
+    if (entryMode === 'ITEMIZED' && numericAmount <= 0) {
+      setFormError(
+        'Rincian menu masih Rp 0. Klik "Atur Menu" untuk mengisi harga menu pesanan.'
+      );
+      return;
+    }
+
     if (numericAmount <= 0) {
       setFormError('Masukkan nominal pengeluaran lebih dari Rp 0.');
       return;
@@ -315,7 +369,7 @@ export function AddTransactionDrawer({
     setIsSubmitting(true);
     try {
       const activeItemized: ItemizedBillData | null =
-        isItemizedOpen && itemizedItems.some((i) => i.price > 0)
+        entryMode === 'ITEMIZED' && itemizedItems.some((i) => i.price > 0)
           ? { items: itemizedItems, extraFee }
           : null;
 
@@ -326,7 +380,7 @@ export function AddTransactionDrawer({
         amount: numericAmount,
         category_id: categoryId,
         payer_id: payerId,
-        split_type: splitType,
+        split_type: entryMode === 'ITEMIZED' ? 'CUSTOM' : splitType,
         user_a_share: customShareA,
         user_b_share: customShareB,
         event_id: eventId ? eventId : null,
@@ -352,272 +406,374 @@ export function AddTransactionDrawer({
 
   const payerName = payerId === myId ? myName : partnerName;
   const otherName = payerId === myId ? partnerName : myName;
+  const validMenuCount = itemizedItems.filter((it) => it.price > 0).length;
 
   return (
     <BottomSheet
       isOpen={isOpen}
       onClose={onClose}
+      onBack={
+        viewStep === 'ITEMIZED' ? () => setViewStep('MAIN') : undefined
+      }
       title={
-        isEditMode ? 'Edit Pengeluaran Date' : 'Catat Pengeluaran Date'
+        viewStep === 'ITEMIZED'
+          ? 'Rincian Menu & Pajak'
+          : isEditMode
+          ? 'Edit Pengeluaran Date'
+          : 'Catat Pengeluaran Date'
       }
       description={
-        isEditMode
+        viewStep === 'ITEMIZED'
+          ? 'Pilih siapa yang pesan tiap menu, total porsi dihitung otomatis.'
+          : isEditMode
           ? 'Perubahan otomatis menghitung ulang saldo berjalan kalian.'
           : 'Transaksi otomatis tersinkron ke layar pasanganmu.'
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-3" noValidate>
-        {/* Shortcut Scan Struk AI OCR */}
-        <div className="space-y-1.5">
-          <input
-            ref={scanInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleScanReceiptFile}
-            className="hidden"
-            aria-label="Scan struk kasir dengan AI"
-          />
-          <button
-            type="button"
-            disabled={isScanningReceipt}
-            onClick={() => scanInputRef.current?.click()}
-            className="flex w-full min-h-[44px] items-center justify-between gap-2 rounded-2xl border border-dashed border-orange-300 bg-gradient-to-r from-orange-50/90 to-amber-50/70 px-3.5 py-2.5 text-left transition-all hover:border-orange-400 hover:from-orange-100/80 dark:border-orange-800/70 dark:from-orange-950/40 dark:to-stone-900 dark:hover:border-orange-700"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-600 text-white shadow-sm">
-                {isScanningReceipt ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Camera className="h-4 w-4" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="flex items-center gap-1 text-xs font-bold text-orange-950 dark:text-orange-200">
-                  <span>
-                    {isScanningReceipt
-                      ? 'Sedang Membaca Struk...'
-                      : 'Scan Struk Kasir Otomatis'}
-                  </span>
-                  <Sparkles className="h-3 w-3 shrink-0 text-orange-600 dark:text-orange-400" />
-                </p>
-                <p className="truncate text-[11px] text-stone-600 dark:text-stone-400">
-                  {isScanningReceipt
-                    ? 'Mengekstrak nama toko, daftar menu & pajak...'
-                    : 'Foto struk untuk isi otomatis judul, menu & total'}
-                </p>
-              </div>
-            </div>
-            <span className="shrink-0 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-orange-800 shadow-xs ring-1 ring-orange-200 dark:bg-stone-800 dark:text-orange-300 dark:ring-orange-800/60">
-              {isScanningReceipt ? 'Proses...' : 'Pilih Foto'}
-            </span>
-          </button>
+      {/* Hidden File Input untuk Kamera / Galeri Struk */}
+      <input
+        ref={scanInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleScanReceiptFile}
+        className="hidden"
+        aria-label="Scan atau unggah foto struk kasir"
+      />
 
-          {scanFeedback && (
-            <div
-              className={`rounded-xl border px-3 py-2 text-[11px] font-medium ${
-                scanFeedback.isError
-                  ? 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200'
-                  : 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200'
-              }`}
-            >
-              {scanFeedback.text}
-            </div>
-          )}
-        </div>
-
-        {/* Judul & Nominal */}
-        <Input
-          label="Judul Pengeluaran"
-          placeholder="Contoh: Makan Malam Ramen / Bioskop"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-
-        <Input
-          label="Nominal Pengeluaran"
-          prefixText="Rp"
-          inputMode="numeric"
-          placeholder="50.000"
-          value={amountDisplay}
-          onChange={handleAmountChange}
-          required
-          className="text-lg font-bold tabular-nums"
-        />
-
-        {/* Rincian per Menu (Itemized Split Builder - Manual & Hasil Scan OCR) */}
+      {viewStep === 'ITEMIZED' ? (
         <ItemizedBillBuilder
-          isOpen={isItemizedOpen}
-          onToggleOpen={handleToggleItemized}
           items={itemizedItems}
           extraFee={extraFee}
           isMeUserA={isMeUserA}
           myName={myName}
           partnerName={partnerName}
           onChange={handleItemizedChange}
+          onDone={() => setViewStep('MAIN')}
+          onTriggerScan={() => scanInputRef.current?.click()}
+          isScanning={isScanningReceipt}
+          scanFeedback={scanFeedback}
         />
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
+          {/* 1. Pintu Terpadu Struk Kasir (Scan AI + Lampiran Bukti dalam 1 Komponen) */}
+          <div className="space-y-1.5">
+            {receiptUrl ? (
+              <div className="flex items-center justify-between gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={receiptUrl}
+                    alt="Preview struk"
+                    className="h-9 w-9 shrink-0 rounded-lg object-cover border border-emerald-300 dark:border-emerald-800"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-emerald-950 dark:text-emerald-200 truncate">
+                      ✓ Foto Struk Terlampir
+                    </p>
+                    <p className="text-[11px] text-emerald-700 dark:text-emerald-400 truncate">
+                      {isScanningReceipt
+                        ? 'Sedang membaca ulang struk...'
+                        : 'Tersimpan sebagai bukti transaksi'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    disabled={isScanningReceipt}
+                    onClick={() => scanInputRef.current?.click()}
+                    className="rounded-xl bg-white px-2.5 py-1.5 text-[11px] font-bold text-stone-700 shadow-2xs ring-1 ring-stone-200 hover:bg-stone-50 dark:bg-stone-800 dark:text-stone-200 dark:ring-stone-700"
+                  >
+                    {isScanningReceipt ? 'Proses...' : 'Ganti Foto'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReceiptUrl(null)}
+                    aria-label="Hapus lampiran struk"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-stone-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950/50 dark:hover:text-red-400"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={isScanningReceipt}
+                onClick={() => scanInputRef.current?.click()}
+                className="flex w-full min-h-[44px] items-center justify-between gap-2 rounded-2xl border border-dashed border-orange-300 bg-gradient-to-r from-orange-50/90 to-amber-50/70 px-3.5 py-2.5 text-left transition-all hover:border-orange-400 hover:from-orange-100/80 dark:border-orange-800/70 dark:from-orange-950/40 dark:to-stone-900 dark:hover:border-orange-700"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-600 text-white shadow-sm">
+                    {isScanningReceipt ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1 text-xs font-bold text-orange-950 dark:text-orange-200">
+                      <span>
+                        {isScanningReceipt
+                          ? 'Sedang Membaca Struk...'
+                          : 'Scan Struk Kasir Otomatis'}
+                      </span>
+                      <Sparkles className="h-3 w-3 shrink-0 text-orange-600 dark:text-orange-400" />
+                    </p>
+                    <p className="truncate text-[11px] text-stone-600 dark:text-stone-400">
+                      {isScanningReceipt
+                        ? 'Mengekstrak nama toko, daftar menu & pajak...'
+                        : 'Foto struk untuk isi judul, menu & lampiran otomatis'}
+                    </p>
+                  </div>
+                </div>
+                <span className="shrink-0 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-orange-800 shadow-xs ring-1 ring-orange-200 dark:bg-stone-800 dark:text-orange-300 dark:ring-orange-800/60">
+                  {isScanningReceipt ? 'Proses...' : 'Foto Struk'}
+                </span>
+              </button>
+            )}
 
-        {/* Kategori: Horizontal Chips */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
-              Kategori
-            </span>
-            <span className="text-[11px] text-stone-400 dark:text-stone-500">
-              Geser pilihan →
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x">
-            {categories.map((cat) => {
-              const selected = categoryId === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setCategoryId(cat.id)}
-                  aria-pressed={selected}
-                  className={`flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 snap-start ${
-                    selected
-                      ? 'border-orange-600 bg-orange-50 font-semibold text-orange-950 dark:border-orange-500 dark:bg-orange-950/70 dark:text-orange-100 ring-1 ring-orange-500/30'
-                      : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300'
-                  }`}
-                >
-                  <CategoryIcon name={cat.icon} className="h-3.5 w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">{cat.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Siapa yang Membayar: Segmented Bar dengan target sentuh lega (h-11) */}
-        <div className="space-y-1.5">
-          <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
-            Siapa yang Membayar di Kasir?
-          </span>
-          <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-stone-100 p-1.5 dark:bg-stone-800/80">
-            <button
-              type="button"
-              onClick={() => setPayerId(myId)}
-              aria-pressed={payerId === myId}
-              title={`Dibayar ${myName} (Kamu)`}
-              className={`flex h-11 items-center justify-center gap-1.5 truncate rounded-xl px-3 text-xs sm:text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
-                payerId === myId
-                  ? 'bg-white font-bold text-orange-950 shadow dark:bg-stone-900 dark:text-orange-200 ring-1 ring-black/5 dark:ring-white/10'
-                  : 'font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
-              }`}
-            >
-              <span className="truncate">Dibayar {formatShortName(myName, 10)} (Kamu)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPayerId(partnerId)}
-              aria-pressed={payerId === partnerId}
-              title={`Dibayar ${partnerName}`}
-              className={`flex h-11 items-center justify-center gap-1.5 truncate rounded-xl px-3 text-xs sm:text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
-                payerId === partnerId
-                  ? 'bg-white font-bold text-orange-950 shadow dark:bg-stone-900 dark:text-orange-200 ring-1 ring-black/5 dark:ring-white/10'
-                  : 'font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
-              }`}
-            >
-              <span className="truncate">Dibayar {formatShortName(partnerName, 14)}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Mode Split: Segmented Control */}
-        <SplitModeSelector
-          value={splitType}
-          onChange={setSplitType}
-          totalAmount={numericAmount}
-          payerName={payerName}
-          otherName={otherName}
-          userAName={userAName}
-          userBName={userBName}
-          customShareA={customShareA}
-          customShareB={customShareB}
-          onChangeCustomShares={(a, b) => {
-            setCustomShareA(a);
-            setCustomShareB(b);
-          }}
-        />
-
-        {/* Momen Date: Compact Select */}
-        <div className="space-y-1.5">
-          <label
-            htmlFor="event-select"
-            className="block text-xs font-semibold text-stone-700 dark:text-stone-300"
-          >
-            Momen (opsional)
-          </label>
-          <select
-            id="event-select"
-            value={eventId}
-            onChange={(e) => setEventId(e.target.value)}
-            className="w-full min-h-[40px] rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
-          >
-            <option value="">Harian Biasa (tanpa Momen)</option>
-            {events.map((evt) => (
-              <option key={evt.id} value={evt.id}>
-                Momen: {evt.title} {evt.is_active ? '(Sedang Berlangsung)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Catatan & Foto Struk Inline */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs font-semibold text-stone-700 dark:text-stone-300">
-            <label htmlFor="notes-input">Catatan & Struk (opsional)</label>
-            {receiptUrl && (
-              <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                ✓ Struk terlampir
-              </span>
+            {scanFeedback && (
+              <div
+                className={`rounded-xl border px-3 py-2 text-[11px] font-medium ${
+                  scanFeedback.isError
+                    ? 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200'
+                    : 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200'
+                }`}
+              >
+                {scanFeedback.text}
+              </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
+
+          {/* 2. Judul Pengeluaran */}
+          <Input
+            label="Judul Pengeluaran"
+            placeholder="Contoh: Makan Malam Ramen / Bioskop"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+
+          {/* 3. Pemilih Cara Hitung: Input Langsung vs Bagi per Menu */}
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-stone-100 p-1 dark:bg-stone-800/90">
+              <button
+                type="button"
+                onClick={() => handleSelectEntryMode('DIRECT')}
+                aria-pressed={entryMode === 'DIRECT'}
+                className={`flex h-9 items-center justify-center gap-1.5 rounded-xl px-2.5 text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
+                  entryMode === 'DIRECT'
+                    ? 'bg-white text-stone-900 shadow-xs dark:bg-stone-900 dark:text-stone-100'
+                    : 'text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
+                }`}
+              >
+                <Zap className="h-3.5 w-3.5 shrink-0 text-orange-600 dark:text-orange-400" />
+                <span className="truncate">Input Langsung</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectEntryMode('ITEMIZED')}
+                aria-pressed={entryMode === 'ITEMIZED'}
+                className={`flex h-9 items-center justify-center gap-1.5 rounded-xl px-2.5 text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
+                  entryMode === 'ITEMIZED'
+                    ? 'bg-white text-orange-950 shadow-xs dark:bg-stone-900 dark:text-orange-200'
+                    : 'text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
+                }`}
+              >
+                <ListChecks className="h-3.5 w-3.5 shrink-0 text-orange-600 dark:text-orange-400" />
+                <span className="truncate">
+                  Bagi per Menu
+                  {validMenuCount > 0 ? ` (${validMenuCount})` : ''}
+                </span>
+              </button>
+            </div>
+
+            {entryMode === 'DIRECT' ? (
+              <div className="space-y-3">
+                <Input
+                  label="Nominal Pengeluaran"
+                  prefixText="Rp"
+                  inputMode="numeric"
+                  placeholder="50.000"
+                  value={amountDisplay}
+                  onChange={handleAmountChange}
+                  required
+                  className="text-lg font-bold tabular-nums"
+                />
+
+                {/* Mode Split Hanya Muncul di Mode Input Langsung (Tidak Tumpang-Tindih dengan Menu) */}
+                <SplitModeSelector
+                  value={splitType}
+                  onChange={setSplitType}
+                  totalAmount={numericAmount}
+                  payerName={payerName}
+                  otherName={otherName}
+                  userAName={userAName}
+                  userBName={userBName}
+                  customShareA={customShareA}
+                  customShareB={customShareB}
+                  onChangeCustomShares={(a, b) => {
+                    setCustomShareA(a);
+                    setCustomShareB(b);
+                  }}
+                />
+              </div>
+            ) : (
+              /* Kartu Ringkasan Rincian Menu (Menggantikan Input Nominal & Split Manual) */
+              <ItemizedSummaryCard
+                items={itemizedItems}
+                extraFee={extraFee}
+                isMeUserA={isMeUserA}
+                myName={myName}
+                partnerName={partnerName}
+                onOpenEditor={handleOpenItemizedEditor}
+              />
+            )}
+          </div>
+
+          {/* 4. Kategori: Horizontal Chips */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                Kategori
+              </span>
+              <span className="text-[11px] text-stone-400 dark:text-stone-500">
+                Geser pilihan →
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x">
+              {categories.map((cat) => {
+                const selected = categoryId === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setCategoryId(cat.id)}
+                    aria-pressed={selected}
+                    className={`flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 snap-start ${
+                      selected
+                        ? 'border-orange-600 bg-orange-50 font-semibold text-orange-950 dark:border-orange-500 dark:bg-orange-950/70 dark:text-orange-100 ring-1 ring-orange-500/30'
+                        : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300'
+                    }`}
+                  >
+                    <CategoryIcon
+                      name={cat.icon}
+                      className="h-3.5 w-3.5 shrink-0"
+                    />
+                    <span className="whitespace-nowrap">{cat.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 5. Siapa yang Membayar di Kasir */}
+          <div className="space-y-1.5">
+            <span className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+              Siapa yang Membayar di Kasir?
+            </span>
+            <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-stone-100 p-1.5 dark:bg-stone-800/80">
+              <button
+                type="button"
+                onClick={() => setPayerId(myId)}
+                aria-pressed={payerId === myId}
+                title={`Dibayar ${myName} (Kamu)`}
+                className={`flex h-11 items-center justify-center gap-1.5 truncate rounded-xl px-3 text-xs sm:text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
+                  payerId === myId
+                    ? 'bg-white font-bold text-orange-950 shadow dark:bg-stone-900 dark:text-orange-200 ring-1 ring-black/5 dark:ring-white/10'
+                    : 'font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
+                }`}
+              >
+                <span className="truncate">
+                  Dibayar {formatShortName(myName, 10)} (Kamu)
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayerId(partnerId)}
+                aria-pressed={payerId === partnerId}
+                title={`Dibayar ${partnerName}`}
+                className={`flex h-11 items-center justify-center gap-1.5 truncate rounded-xl px-3 text-xs sm:text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 ${
+                  payerId === partnerId
+                    ? 'bg-white font-bold text-orange-950 shadow dark:bg-stone-900 dark:text-orange-200 ring-1 ring-black/5 dark:ring-white/10'
+                    : 'font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200'
+                }`}
+              >
+                <span className="truncate">
+                  Dibayar {formatShortName(partnerName, 14)}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* 6. Momen Date & Catatan Tambahan */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="space-y-1">
+              <label
+                htmlFor="event-select"
+                className="block text-xs font-semibold text-stone-700 dark:text-stone-300"
+              >
+                Momen (opsional)
+              </label>
+              <select
+                id="event-select"
+                value={eventId}
+                onChange={(e) => setEventId(e.target.value)}
+                className="w-full min-h-[42px] rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+              >
+                <option value="">Harian Biasa (tanpa Momen)</option>
+                {events.map((evt) => (
+                  <option key={evt.id} value={evt.id}>
+                    Momen: {evt.title}{' '}
+                    {evt.is_active ? '(Sedang Berlangsung)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label
+                htmlFor="notes-input"
+                className="block text-xs font-semibold text-stone-700 dark:text-stone-300"
+              >
+                Catatan Singkat (opsional)
+              </label>
               <input
                 id="notes-input"
                 type="text"
-                placeholder="Contoh: Pesan 2 matcha latte + kentang"
+                placeholder="Contoh: Parkir + bayar pakai QRIS"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full min-h-[44px] rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-sm text-stone-900 placeholder:text-stone-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:placeholder:text-stone-500"
+                className="w-full min-h-[42px] rounded-xl border border-stone-300 bg-white px-3 py-2 text-base sm:text-xs text-stone-900 placeholder:text-stone-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:placeholder:text-stone-500"
               />
             </div>
-            <ReceiptUploader
-              receiptUrl={receiptUrl}
-              onChange={setReceiptUrl}
-              spaceId={space?.id || 'space-couple-uuid'}
-              compact
-            />
           </div>
-        </div>
 
-        {formError && (
-          <div
-            role="alert"
-            className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300"
-          >
-            {formError}
+          {formError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300"
+            >
+              {formError}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Batal
+            </Button>
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting
+                ? 'Menyimpan...'
+                : isEditMode
+                ? 'Simpan Perubahan'
+                : 'Simpan Transaksi'}
+            </Button>
           </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Batal
-          </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting
-              ? 'Menyimpan...'
-              : isEditMode
-              ? 'Simpan Perubahan'
-              : 'Simpan Transaksi'}
-          </Button>
-        </div>
-      </form>
+        </form>
+      )}
     </BottomSheet>
   );
 }

@@ -2,12 +2,13 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  onBack?: () => void;
   title: string;
   description?: string;
   children: React.ReactNode;
@@ -17,6 +18,7 @@ export interface BottomSheetProps {
 export function BottomSheet({
   isOpen,
   onClose,
+  onBack,
   title,
   description,
   children,
@@ -138,25 +140,37 @@ export function BottomSheet({
           className="cursor-grab active:cursor-grabbing touch-none select-none"
         >
           <div className="mx-auto mb-3 h-1.5 w-11 rounded-full bg-stone-300 dark:bg-stone-700 sm:hidden" />
-          <div className="flex items-start justify-between gap-3 border-b border-stone-200 dark:border-stone-800 pb-3 mb-4">
-            <div>
-              <h2
-                id="bottom-sheet-title"
-                className="text-lg font-bold text-stone-900 dark:text-stone-100"
-              >
-                {title}
-              </h2>
-              {description && (
-                <p className="mt-0.5 text-xs text-stone-600 dark:text-stone-400">
-                  {description}
-                </p>
+          <div className="flex items-start justify-between gap-2.5 border-b border-stone-200 dark:border-stone-800 pb-3 mb-4">
+            <div className="flex items-start gap-2 min-w-0">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  aria-label="Kembali"
+                  className="-ml-1 inline-flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-xl text-stone-700 hover:bg-stone-200/70 dark:text-stone-200 dark:hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
               )}
+              <div className="min-w-0">
+                <h2
+                  id="bottom-sheet-title"
+                  className="text-lg font-bold text-stone-900 dark:text-stone-100 truncate"
+                >
+                  {title}
+                </h2>
+                {description && (
+                  <p className="mt-0.5 text-xs text-stone-600 dark:text-stone-400">
+                    {description}
+                  </p>
+                )}
+              </div>
             </div>
             <button
               type="button"
               onClick={onClose}
               aria-label="Tutup dialog"
-              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-stone-600 hover:bg-stone-200/70 dark:text-stone-300 dark:hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
+              className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-stone-600 hover:bg-stone-200/70 dark:text-stone-300 dark:hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
             >
               <X className="h-5 w-5" />
             </button>
