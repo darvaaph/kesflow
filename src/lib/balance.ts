@@ -16,14 +16,18 @@ export function computeTransactionShares(
   customUserAShare?: number,
   customUserBShare?: number
 ): { user_a_share: number; user_b_share: number } {
-  const cleanAmount = Math.max(0, Number(amount));
+  const cleanAmount = Number(amount);
+  if (!Number.isFinite(cleanAmount) || cleanAmount <= 0) {
+    throw new Error('Nominal harus berupa angka positif.');
+  }
 
   switch (splitType) {
     case 'EQUAL_50_50': {
-      const half = cleanAmount / 2;
+      const cents = Math.round(cleanAmount * 100);
+      const half = Math.round(cents / 2) / 100;
       return {
         user_a_share: half,
-        user_b_share: half,
+        user_b_share: (cents - Math.round(cents / 2)) / 100,
       };
     }
     case 'FULL_TREAT': {
@@ -46,6 +50,11 @@ export function computeTransactionShares(
         customUserBShare !== undefined
           ? Math.max(0, Number(customUserBShare))
           : Math.max(0, cleanAmount - shareA);
+      if (!Number.isFinite(shareA) || !Number.isFinite(shareB) ||
+          Math.abs(shareA + shareB - cleanAmount) > 0.001 ||
+          Number(customUserAShare ?? 0) < 0 || Number(customUserBShare ?? 0) < 0) {
+        throw new Error('Total porsi harus sama dengan nominal pengeluaran.');
+      }
       return {
         user_a_share: shareA,
         user_b_share: shareB,
@@ -69,8 +78,8 @@ export function getTransactionImpactForA(
 
   switch (tx.split_type) {
     case 'EQUAL_50_50': {
-      if (tx.payer_id === userAId) return amount / 2;
-      if (tx.payer_id === userBId) return -amount / 2;
+      if (tx.payer_id === userAId) return shareB;
+      if (tx.payer_id === userBId) return -shareA;
       return 0;
     }
     case 'FULL_TREAT': {
@@ -132,19 +141,19 @@ export function calculateRunningBalance(
   for (const tx of transactions) {
     const amount = Number(tx.amount);
 
-    totalDateExpense += amount;
+    totalDateExpense = Math.round((totalDateExpense + amount) * 100) / 100;
 
     if (tx.payer_id === userAId) {
-      totalPaidByA += amount;
+      totalPaidByA = Math.round((totalPaidByA + amount) * 100) / 100;
     } else if (tx.payer_id === userBId) {
-      totalPaidByB += amount;
+      totalPaidByB = Math.round((totalPaidByB + amount) * 100) / 100;
     }
 
-    netBalanceForA += getTransactionImpactForA(tx, userAId, userBId);
+    netBalanceForA = Math.round((netBalanceForA + getTransactionImpactForA(tx, userAId, userBId)) * 100) / 100;
   }
 
   for (const st of settlements) {
-    netBalanceForA += getSettlementImpactForA(st, userAId, userBId);
+    netBalanceForA = Math.round((netBalanceForA + getSettlementImpactForA(st, userAId, userBId)) * 100) / 100;
   }
 
   // Hindari -0 pada JavaScript floating point
@@ -199,7 +208,7 @@ export function calculateBalanceBreakdown(
   }
 
   const clean = (n: number) =>
-    Object.is(n, -0) || Math.abs(n) < 0.005 ? 0 : n;
+    Object.is(n, -0) || Math.abs(n) < 0.005 ? 0 : Math.round(n * 100) / 100;
 
   const transactionNetForA = clean(owedToA - owedByA);
   settledForA = clean(settledForA);

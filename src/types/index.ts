@@ -19,7 +19,7 @@ export type ActivityLogType =
 export interface ActivityLogItem {
   id: string;
   space_id: string;
-  actor_id: string;
+  actor_id: string | null;
   actor_name: string;
   action_type: ActivityLogType;
   target_id: string;

@@ -1,61 +1,21 @@
-const CACHE_NAME = 'kesflow-pwa-cache-v2';
-const OFFLINE_URLS = [
-  '/',
-  '/events',
-  '/stats',
-  '/settings',
-  '/login',
-  '/onboarding',
-  '/manifest.json',
-];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(OFFLINE_URLS))
-      .catch(() => {})
-  );
-  self.skipWaiting();
-});
-
+const CACHE_NAME = 'kesflow-public-assets-v3';
+self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-          return undefined;
-        })
-      )
-    )
-  );
-  self.clients.claim();
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys
+    .filter((key) => key.startsWith('kesflow-') && key !== CACHE_NAME)
+    .map((key) => caches.delete(key)))).then(() => self.clients.claim()));
 });
-
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const cloned = response.clone();
-        caches
-          .open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, cloned);
-          })
-          .catch(() => {});
-        return response;
-      })
-      .catch(() =>
-        caches
-          .match(event.request)
-          .then((cached) => cached || caches.match('/'))
-      )
-  );
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (!url.pathname.startsWith('/_next/static/') && !url.pathname.startsWith('/icons/')) return;
+  event.respondWith(caches.open(CACHE_NAME).then(async (cache) => {
+    const cached = await cache.match(event.request);
+    if (cached) return cached;
+    const response = await fetch(event.request);
+    if (response.ok && !response.redirected) await cache.put(event.request, response.clone());
+    return response;
+  }));
 });
 
 self.addEventListener('push', (event) => {

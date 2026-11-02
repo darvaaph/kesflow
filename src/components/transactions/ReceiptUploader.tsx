@@ -69,7 +69,7 @@ export async function uploadAndCompressReceipt(
   }
 
   const supabase = createClient();
-  const filePath = `${spaceId}/${Date.now()}-receipt.jpg`;
+  const filePath = `${spaceId}/${crypto.randomUUID()}-receipt.jpg`;
   const { error } = await supabase.storage
     .from('receipts')
     .upload(filePath, blob, {
@@ -78,15 +78,16 @@ export async function uploadAndCompressReceipt(
     });
 
   if (error) {
-    return { storedUrl: dataUrl, dataUrl };
+    throw new Error('Gagal mengunggah struk. Periksa koneksi lalu coba lagi.');
   }
 
-  const { data: signedData } = await supabase.storage
+  const { data: signedData, error: signedError } = await supabase.storage
     .from('receipts')
     .createSignedUrl(filePath, 60 * 60 * 24 * 365);
 
+  if (signedError || !signedData?.signedUrl) throw new Error('Gagal membuka struk yang diunggah.');
   return {
-    storedUrl: signedData?.signedUrl || dataUrl,
+    storedUrl: signedData.signedUrl,
     dataUrl,
   };
 }

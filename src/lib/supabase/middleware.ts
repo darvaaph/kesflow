@@ -11,7 +11,7 @@ export async function updateSession(request: NextRequest) {
 
   // Jika dalam mode Mock / Demo lokal (Supabase belum dikonfigurasi),
   // jangan blokir request di server middleware agar fallback LocalStorage berjalan mulus.
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseConfigured() || request.nextUrl.pathname === '/auth/callback' || request.nextUrl.pathname === '/sw.js') {
     return response;
   }
 
@@ -61,6 +61,10 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isAuthPage =
     pathname.startsWith('/login') || pathname.startsWith('/onboarding');
+
+  if (!user && pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Silakan login terlebih dahulu.' }, { status: 401 });
+  }
 
   if (!user && !isAuthPage) {
     const url = request.nextUrl.clone();

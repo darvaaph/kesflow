@@ -4,8 +4,8 @@ import { cookies } from 'next/headers';
 import type { Database } from '@/types/database.types';
 import { SESSION_COOKIE_MAX_AGE } from './client';
 
-export function createServerSupabaseClient(): SupabaseClient<Database> {
-  const cookieStore = cookies();
+export async function createServerSupabaseClient(): Promise<SupabaseClient<Database>> {
+  const cookieStore = await cookies();
   const url =
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';

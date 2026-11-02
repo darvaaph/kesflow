@@ -1,8 +1,7 @@
-const FALLBACK_PUBLIC_VAPID_KEY =
-  'BJlHq_dp6__mAMAAa1MKDsQG937EdtJDXktBlYTCUgV-bfydS2OMl2ZYFiAqkpcIqrSJQeITxkiMT_LJzWYX1wM';
-
 export function getPublicVapidKey(): string {
-  return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || FALLBACK_PUBLIC_VAPID_KEY;
+  const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!key) throw new Error('Notifikasi belum dikonfigurasi oleh pengelola.');
+  return key;
 }
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {

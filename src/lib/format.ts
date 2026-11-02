@@ -3,14 +3,14 @@ import { id as localeId } from 'date-fns/locale';
 
 const rupiahFormatter = new Intl.NumberFormat('id-ID', {
   minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
 /**
  * Format angka ke format standar Rupiah Indonesia: "Rp 25.000"
  */
 export function formatRupiah(amount: number): string {
-  const absVal = Math.abs(Math.round(amount));
+  const absVal = Math.abs(amount);
   const formatted = rupiahFormatter.format(absVal);
   return amount < 0 ? `-Rp ${formatted}` : `Rp ${formatted}`;
 }
@@ -19,17 +19,24 @@ export function formatRupiah(amount: number): string {
  * Format angka ribuan tanpa prefix "Rp " untuk input field: "25.000"
  */
 export function formatNumberInput(value: number | string): string {
-  const digits = String(value).replace(/\D/g, '');
-  if (!digits) return '';
-  return rupiahFormatter.format(Number(digits));
+  if (typeof value === 'number') {
+    return Number.isFinite(value)
+      ? new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(value)
+      : '';
+  }
+  const clean = value.replace(/[^\d,-]/g, '');
+  const [whole, fraction] = clean.replace(/-/g, '').split(',');
+  if (!whole && fraction === undefined) return clean.startsWith('-') ? '-' : '';
+  return `${clean.startsWith('-') ? '-' : ''}${rupiahFormatter.format(Number(whole || 0))}${fraction !== undefined ? `,${fraction.slice(0, 2)}` : ''}`;
 }
 
 /**
  * Parse string berformat titik ribuan menjadi number murni
  */
 export function parseNumberInput(formatted: string): number {
-  const digits = formatted.replace(/\D/g, '');
-  return digits ? Number(digits) : 0;
+  const normalized = formatted.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+  const value = Number(normalized);
+  return Number.isFinite(value) ? value : 0;
 }
 
 /**

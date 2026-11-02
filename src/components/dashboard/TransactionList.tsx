@@ -1,6 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+import type { ActivityLogItem, Transaction } from '@/types';
+import { AddTransactionDrawer } from '@/components/transactions/AddTransactionDrawer';
 import { AlertCircle, Plus, ReceiptText } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
 import { TransactionItem } from './TransactionItem';
@@ -25,10 +27,21 @@ export function TransactionList({
     userAId,
     isLoading,
     error,
-    clearError,
+    refreshData,
+    activityLogs,
     deleteTransaction,
   } = useKesflow();
 
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const logsByTarget = useMemo(() => {
+    const map = new Map<string, ActivityLogItem[]>();
+    for (const log of activityLogs) {
+      const logs = map.get(log.target_id) ?? [];
+      logs.push(log);
+      map.set(log.target_id, logs);
+    }
+    return map;
+  }, [activityLogs]);
   const filteredTransactions = eventFilterId
     ? transactions.filter((t) => t.event_id === eventFilterId)
     : transactions;
@@ -44,7 +57,7 @@ export function TransactionList({
     );
   }
 
-  if (error) {
+  if (error && transactions.length === 0) {
     return (
       <Card
         role="alert"
@@ -59,7 +72,7 @@ export function TransactionList({
             <p className="text-xs text-red-800 dark:text-red-300">{error}</p>
           </div>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={clearError}>
+        <Button type="button" variant="outline" size="sm" onClick={() => { void refreshData(); }}>
           Coba Lagi
         </Button>
       </Card>
@@ -99,6 +112,12 @@ export function TransactionList({
 
   return (
     <div className="space-y-2.5">
+      {error && (
+        <Card role="alert" className="p-3 space-y-2">
+          <p className="text-xs">Sinkronisasi gagal. Data terakhir tetap ditampilkan: {error}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => { void refreshData(); }}>Coba Lagi</Button>
+        </Card>
+      )}
       {filteredTransactions.map((tx) => {
         const cat = categories.find((c) => c.id === tx.category_id);
         const evt = events.find((e) => e.id === tx.event_id);
@@ -112,9 +131,12 @@ export function TransactionList({
             partnerUser={partnerUser}
             userAId={userAId}
             onDelete={deleteTransaction}
+            onEdit={setEditingTransaction}
+            txLogs={logsByTarget.get(tx.id) ?? []}
           />
         );
       })}
+      {editingTransaction && <AddTransactionDrawer isOpen onClose={() => setEditingTransaction(null)} initialTransaction={editingTransaction} />}
     </div>
   );
 }

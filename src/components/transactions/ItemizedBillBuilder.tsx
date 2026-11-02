@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Camera,
   Check,
@@ -54,6 +54,8 @@ export function ItemizedBillBuilder({
   const myAssignee: ItemAssignee = isMeUserA ? 'A' : 'B';
   const partnerAssignee: ItemAssignee = isMeUserA ? 'B' : 'A';
 
+  const [feeInput, setFeeInput] = useState(formatNumberInput(extraFee));
+  useEffect(() => { setFeeInput(formatNumberInput(extraFee)); }, [extraFee]);
   const calc = calculateItemizedSplit({ items, extraFee });
   const handleUpdateItem = (
     id: string,
@@ -95,8 +97,10 @@ export function ItemizedBillBuilder({
   };
 
   const handleExtraFeeChange = (raw: string) => {
+    setFeeInput(raw);
+    if (raw === '-') return;
     const val = parseNumberInput(raw);
-    onChange({ items, extraFee: val });
+    onChange({ items, extraFee: Math.max(-calc.itemsSubtotal, val) });
   };
 
   const applyTaxPreset = (rate: number) => {
@@ -253,10 +257,10 @@ export function ItemizedBillBuilder({
               htmlFor="extra-fee-input"
               className="block text-xs font-bold text-stone-800 dark:text-stone-200"
             >
-              Pajak / Service / Ongkir
+              Pajak / Service / Diskon
             </label>
             <p className="text-[11px] text-stone-500 dark:text-stone-400">
-              Dibagi adil sesuai proporsi pesanan masing-masing
+              Gunakan angka negatif untuk diskon
             </p>
           </div>
           <div className="relative w-36 shrink-0">
@@ -268,7 +272,7 @@ export function ItemizedBillBuilder({
               type="text"
               inputMode="numeric"
               placeholder="0"
-              value={extraFee > 0 ? formatNumberInput(extraFee) : ''}
+              value={feeInput}
               onChange={(e) => handleExtraFeeChange(e.target.value)}
               className="w-full rounded-xl border border-stone-200 bg-stone-50/80 pl-8 pr-3 py-1.5 text-right text-base font-bold tabular-nums text-stone-900 placeholder:font-normal placeholder:text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
             />
@@ -418,9 +422,9 @@ export function ItemizedSummaryCard({
               <span className="text-xs font-bold text-stone-700 dark:text-stone-300">
                 Total dari {validItems.length} Menu
               </span>
-              {extraFee > 0 && (
+              {extraFee !== 0 && (
                 <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-800 dark:bg-orange-950 dark:text-orange-300">
-                  +Pajak/Ongkir
+                  Penyesuaian
                 </span>
               )}
             </div>

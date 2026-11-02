@@ -86,3 +86,8 @@ Aplikasi **Kesflow** dirancang sebagai **Standalone Progressive Web App (PWA)** 
 2. Ketuk banner **Instal Kesflow** yang muncul di bagian bawah layar, atau ketuk ikon **Menu (⋮)** di pojok kanan atas Chrome.
 3. Pilih **Instal aplikasi (*Install app*)** atau **Tambahkan ke layar utama**.
 4. Konfirmasi dengan mengetuk **Instal**. Aplikasi Kesflow siap diakses langsung dari laci aplikasi Android Anda.
+
+
+## Perbaikan audit dan upgrade database
+
+Baca [panduan penerapan](docs/AUDIT_FIXES.md) sebelum deploy. Database lama hanya menjalankan migration baru; SQL bootstrap ditujukan untuk database baru. Gunakan Node.js 22.12+ (pengembangan diverifikasi pada Node.js 24).

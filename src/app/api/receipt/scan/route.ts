@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { normalizeReceipt } from '@/lib/receipt';
 
 export interface ScannedReceiptResult {
   merchantName: string;
@@ -15,12 +17,17 @@ export interface ScannedReceiptResult {
 
 export async function POST(request: Request) {
   try {
+    const { data: { user } } = await (await createServerSupabaseClient()).auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Silakan login untuk memindai struk.' }, { status: 401 });
+    if (Number(request.headers.get('content-length') || 0) > 6000000) {
+      return NextResponse.json({ error: 'Ukuran gambar terlalu besar.' }, { status: 413 });
+    }
     const body = (await request.json()) as {
       imageBase64?: string;
       mimeType?: string;
     };
 
-    if (!body.imageBase64) {
+    if (typeof body.imageBase64 !== 'string' || !body.imageBase64 || body.imageBase64.length > 6000000) {
       return NextResponse.json(
         { error: 'Gambar struk tidak ditemukan.' },
         { status: 400 }
@@ -44,6 +51,9 @@ export async function POST(request: Request) {
       ? body.imageBase64.split(',')[1] || body.imageBase64
       : body.imageBase64;
 
+    if (body.mimeType && !['image/jpeg', 'image/png', 'image/webp'].includes(body.mimeType)) {
+      return NextResponse.json({ error: 'Format gambar tidak didukung.' }, { status: 400 });
+    }
     const mimeType = (body.mimeType || 'image/jpeg') as
       | 'image/jpeg'
       | 'image/png'
@@ -109,14 +119,7 @@ Baca gambar struk ini dengan teliti dan ekstrak:
       );
     }
 
-    const parsed = JSON.parse(rawText) as ScannedReceiptResult;
-    return NextResponse.json({
-      merchantName: parsed.merchantName || 'Struk Belanja',
-      categoryName: parsed.categoryName || 'Makanan & Minuman',
-      items: Array.isArray(parsed.items) ? parsed.items : [],
-      extraFee: Math.max(0, Math.round(Number(parsed.extraFee) || 0)),
-      grandTotal: Math.max(0, Math.round(Number(parsed.grandTotal) || 0)),
-    });
+    return NextResponse.json(normalizeReceipt(JSON.parse(rawText)));
   } catch (err) {
     return NextResponse.json(
       {

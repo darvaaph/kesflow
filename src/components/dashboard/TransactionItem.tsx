@@ -8,15 +8,13 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
-import { Category, DateEvent, Profile, Transaction } from '@/types';
-import { useKesflow } from '@/context/KesflowContext';
+import { ActivityLogItem, Category, DateEvent, Profile, Transaction } from '@/types';
 import { formatRelativeDate, formatRupiah } from '@/lib/format';
 import { parseTransactionNotes } from '@/lib/itemizedBill';
 import { Badge } from '@/components/ui/Badge';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
-import { AddTransactionDrawer } from '@/components/transactions/AddTransactionDrawer';
 
 export interface TransactionItemProps {
   transaction: Transaction;
@@ -26,6 +24,8 @@ export interface TransactionItemProps {
   partnerUser: Profile | null;
   userAId: string;
   onDelete: (id: string) => Promise<void>;
+  onEdit: (transaction: Transaction) => void;
+  txLogs: ActivityLogItem[];
 }
 
 export function TransactionItem({
@@ -36,10 +36,10 @@ export function TransactionItem({
   partnerUser,
   userAId,
   onDelete,
+  onEdit,
+  txLogs,
 }: TransactionItemProps) {
-  const { activityLogs } = useKesflow();
   const [showDetail, setShowDetail] = useState(false);
-  const [showEditDrawer, setShowEditDrawer] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const myId = currentUser?.id ?? userAId;
@@ -53,11 +53,6 @@ export function TransactionItem({
   const parsedNotes = useMemo(
     () => parseTransactionNotes(transaction.notes),
     [transaction.notes]
-  );
-
-  const txLogs = useMemo(
-    () => activityLogs.filter((l) => l.target_id === transaction.id),
-    [activityLogs, transaction.id]
   );
 
   const latestEditLog = useMemo(
@@ -124,7 +119,7 @@ export function TransactionItem({
 
   const handleOpenEdit = () => {
     setShowDetail(false);
-    setShowEditDrawer(true);
+    onEdit(transaction);
   };
 
   return (
@@ -321,9 +316,9 @@ export function TransactionItem({
                     </div>
                   );
                 })}
-                {parsedNotes.itemized.extraFee > 0 && (
+                {parsedNotes.itemized.extraFee !== 0 && (
                   <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-stone-300 px-3 py-1.5 text-xs text-stone-600 dark:border-stone-700 dark:text-stone-400">
-                    <span>Pajak / Service / Ongkir (Proporsional)</span>
+                    <span>Biaya / Diskon (Proporsional)</span>
                     <span className="font-bold tabular-nums">
                       {formatRupiah(parsedNotes.itemized.extraFee)}
                     </span>
@@ -406,11 +401,7 @@ export function TransactionItem({
         </div>
       </BottomSheet>
 
-      <AddTransactionDrawer
-        isOpen={showEditDrawer}
-        onClose={() => setShowEditDrawer(false)}
-        initialTransaction={transaction}
-      />
+
     </>
   );
 }

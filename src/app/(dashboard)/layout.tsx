@@ -16,7 +16,7 @@ function DashboardLayoutContent({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isLoading, isAuthenticated, space } = useKesflow();
+  const { isLoading, isAuthenticated, space, error } = useKesflow();
   const { isNavigating, targetPath } = useNavigation();
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
 
@@ -24,11 +24,11 @@ function DashboardLayoutContent({
     if (!isLoading) {
       if (!isAuthenticated) {
         router.replace('/login');
-      } else if (!space) {
+      } else if (!space && !error) {
         router.replace('/onboarding');
       }
     }
-  }, [isLoading, isAuthenticated, space, router]);
+  }, [isLoading, isAuthenticated, space, error, router]);
 
   return (
     <div className="min-h-screen bg-warm-bg dark:bg-stone-950 flex flex-col relative">

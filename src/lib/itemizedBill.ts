@@ -54,12 +54,13 @@ export function calculateItemizedSplit(
   }
 
   const itemsSubtotal = subtotalA + subtotalB;
-  const extraFee = Math.max(0, Math.round(Number(data.extraFee) || 0));
+  const rawFee = Number(data.extraFee);
+  const extraFee = Math.max(-itemsSubtotal, Number.isFinite(rawFee) ? Math.round(rawFee) : 0);
 
   let extraA = 0;
   let extraB = 0;
 
-  if (extraFee > 0) {
+  if (extraFee !== 0) {
     if (itemsSubtotal > 0) {
       extraA = Math.round((extraFee * subtotalA) / itemsSubtotal);
       extraB = extraFee - extraA;
@@ -112,7 +113,7 @@ export function encodeTransactionNotes(
       ...(it.qty && it.qty > 1 ? { qty: it.qty } : {}),
       assignedTo: it.assignedTo,
     })),
-    extraFee: Math.max(0, Math.round(Number(itemized?.extraFee) || 0)),
+    extraFee: Math.round(Number(itemized?.extraFee) || 0),
   };
 
   const marker = `${ITEMIZED_MARKER_START}${JSON.stringify(payload)}${ITEMIZED_MARKER_END}`;
@@ -183,7 +184,7 @@ export function parseTransactionNotes(rawNotes: string | null | undefined): {
       plainNotes: plainPart,
       itemized: {
         items: validItems,
-        extraFee: Math.max(0, Math.round(Number(parsed.extraFee) || 0)),
+        extraFee: Math.round(Number(parsed.extraFee) || 0),
       },
     };
   } catch {

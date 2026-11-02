@@ -102,8 +102,12 @@ export function AddTransactionDrawer({
   } | null>(null);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
 
+  const initializedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) { initializedFor.current = null; return; }
+    const key = initialTransaction?.id || 'new';
+    if (initializedFor.current === key) return;
+    initializedFor.current = key;
 
     setFormError(null);
     setScanFeedback(null);
@@ -211,10 +215,9 @@ export function AddTransactionDrawer({
   };
 
   const handleItemizedChange = (nextData: ItemizedBillData) => {
-    setItemizedItems(nextData.items);
-    setExtraFee(nextData.extraFee);
-
     const calc = calculateItemizedSplit(nextData);
+    setItemizedItems(nextData.items);
+    setExtraFee(calc.extraFee);
     if (calc.grandTotal > 0) {
       setAmountDisplay(formatNumberInput(calc.grandTotal));
       setCustomShareA(calc.shareA);
@@ -285,7 +288,7 @@ export function AddTransactionDrawer({
       const validScannedItems = (resData.items || []).filter(
         (it) => it.price > 0
       );
-      const scannedExtra = Math.max(0, Math.round(resData.extraFee || 0));
+      const scannedExtra = Math.round(resData.extraFee || 0);
 
       if (validScannedItems.length > 0) {
         const builtItems: BillLineItem[] = validScannedItems.map(
@@ -359,7 +362,7 @@ export function AddTransactionDrawer({
 
     if (
       splitType === 'CUSTOM' &&
-      Math.round(customShareA + customShareB) !== Math.round(numericAmount)
+      Math.abs(customShareA + customShareB - numericAmount) > 0.001
     ) {
       setFormError(
         'Jumlah porsi kustom harus sama persis dengan total nominal pengeluaran.'

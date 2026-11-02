@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -150,6 +151,7 @@ interface KesflowContextValue {
   leaveCoupleSpace: () => Promise<void>;
   resetDemoData: () => void;
   clearError: () => void;
+  refreshData: () => Promise<void>;
 }
 
 const STORAGE_KEY = 'kesflow_app_state_v3';
@@ -193,6 +195,8 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(false);
 
+  const fetchSequence = useRef(0);
+  const authGeneration = useRef(0);
   const [activeUserId, setActiveUserId] = useState<string>(DEMO_USER_A_ID);
   const [state, setState] = useState<KesflowStateStorage>(() =>
     getInitialStorage(isMockMode)
@@ -221,13 +225,19 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setPushPermission(Notification.permission);
-    navigator.serviceWorker.ready
-      .then((reg) => reg.pushManager.getSubscription())
-      .then((sub) => {
-        setIsPushSubscribed(Boolean(sub));
+    let cancelled = false;
+    const generation = authGeneration.current;
+    navigator.serviceWorker.getRegistration()
+      .then((reg) => reg?.pushManager?.getSubscription())
+      .then(async (sub) => {
+        if (!sub || isMockMode) return;
+        const response = await fetch(`/api/push/subscribe?endpoint=${encodeURIComponent(sub.endpoint)}`);
+        const body = response.ok ? await response.json() : null;
+        if (!cancelled && generation === authGeneration.current) setIsPushSubscribed(body?.subscribed === true);
       })
       .catch(() => {});
-  }, []);
+    return () => { cancelled = true; };
+  }, [isMockMode]);
 
   const dismissLiveNotification = useCallback(() => {
     setLiveNotification(null);
@@ -270,166 +280,33 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
 
   const fetchSupabaseData = useCallback(async () => {
     if (isMockMode) return;
-    setIsLoading(true);
+    const sequence = ++fetchSequence.current;
     setError(null);
     try {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (sequence !== fetchSequence.current) return;
+      if (authError) throw authError;
       if (!user) {
         setIsAuthenticated(false);
-        setState({
-          space: null,
-          members: [],
-          profiles: [],
-          categories: DEFAULT_CATEGORIES,
-          events: [],
-          transactions: [],
-          settlements: [],
-          activityLogs: [],
-        });
-        setIsLoading(false);
+        setState(getInitialStorage(false));
         return;
       }
-
       setIsAuthenticated(true);
       setActiveUserId(user.id);
-
-      const { data: myMemberRows } = await supabase
-        .from('space_members')
-        .select('*')
-        .eq('user_id', user.id)
-        .limit(1);
-
-      const myMember = myMemberRows?.[0];
-      if (!myMember) {
-        const { data: ownProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        setState({
-          space: null,
-          members: [],
-          profiles: ownProfile ? [ownProfile] : [],
-          categories: DEFAULT_CATEGORIES,
-          events: [],
-          transactions: [],
-          settlements: [],
-          activityLogs: [],
-        });
-        setIsLoading(false);
-        return;
+      const { data, error: loadError } = await supabase.rpc('get_space_snapshot');
+      if (loadError) throw new Error(loadError.message);
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Data ruang tidak valid.');
+      if (sequence !== fetchSequence.current) return;
+      const snapshot = data as unknown as KesflowStateStorage;
+      if (!Array.isArray(snapshot.transactions) || !Array.isArray(snapshot.settlements) || !Array.isArray(snapshot.members)) {
+        throw new Error('Data ruang tidak lengkap.');
       }
-
-      const spaceId = myMember.space_id;
-      const [
-        spaceRes,
-        membersRes,
-        categoriesRes,
-        eventsRes,
-        txRes,
-        settlementsRes,
-        presetsRes,
-      ] = await Promise.all([
-        supabase.from('spaces').select('*').eq('id', spaceId).single(),
-        supabase
-          .from('space_members')
-          .select('*')
-          .eq('space_id', spaceId)
-          .order('joined_at', { ascending: true }),
-        supabase.from('categories').select('*'),
-        supabase
-          .from('events')
-          .select('*')
-          .eq('space_id', spaceId)
-          .order('start_date', { ascending: false }),
-        supabase
-          .from('transactions')
-          .select('*')
-          .eq('space_id', spaceId)
-          .order('spent_at', { ascending: false }),
-        supabase
-          .from('settlements')
-          .select('*')
-          .eq('space_id', spaceId)
-          .order('settled_at', { ascending: false }),
-        supabase
-          .from('quick_presets')
-          .select('*')
-          .eq('space_id', spaceId)
-          .order('created_at', { ascending: true }),
-      ]);
-
-      const memberRows = membersRes.data ?? [];
-      const memberUserIds = memberRows.map((m) => m.user_id);
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', memberUserIds.length > 0 ? memberUserIds : [user.id]);
-
-      // Gabungkan profil dari database profiles dengan fallback nickname dari space_members
-      // Menjamin nama pasangan selalu muncul meskipun RLS profiles di Supabase belum diperbarui
-      const mergedProfiles: Profile[] = [...(profilesData ?? [])];
-      for (const m of memberRows) {
-        if (!mergedProfiles.some((p) => p.id === m.user_id)) {
-          mergedProfiles.push({
-            id: m.user_id,
-            email: '',
-            display_name: m.nickname || 'Pasangan',
-            avatar_url: null,
-            created_at: m.joined_at,
-            updated_at: m.joined_at,
-          });
-        }
-      }
-
-      setState((prev) => ({
-        space: spaceRes.data ?? null,
-        members: memberRows,
-        profiles: mergedProfiles,
-        categories:
-          categoriesRes.data && categoriesRes.data.length > 0
-            ? categoriesRes.data
-            : DEFAULT_CATEGORIES,
-        events: eventsRes.data ?? [],
-        transactions: txRes.data ?? [],
-        settlements: settlementsRes.data ?? [],
-        activityLogs: (prev.activityLogs ?? []).filter(
-          (l) => l.space_id === spaceId
-        ),
-        quickPresets:
-          presetsRes.data && presetsRes.data.length > 0
-            ? presetsRes.data.map(
-                (r: {
-                  id: string;
-                  space_id?: string;
-                  label: string;
-                  amount: number | string;
-                  category_name?: string;
-                  icon_name?: string;
-                }) => ({
-                  id: r.id,
-                  space_id: r.space_id,
-                  label: r.label,
-                  amount: Number(r.amount),
-                  categoryName: r.category_name || 'Transport & Parkir',
-                  iconName: r.icon_name || 'Zap',
-                })
-              )
-            : prev.quickPresets ?? QUICK_PRESETS,
-      }));
+      setState({ ...snapshot, quickPresets: snapshot.quickPresets ?? [] });
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Gagal memuat data dari server Supabase.'
-      );
+      if (sequence === fetchSequence.current) setError(err instanceof Error ? err.message : 'Gagal memuat data ruang.');
     } finally {
-      setIsLoading(false);
+      if (sequence === fetchSequence.current) setIsLoading(false);
     }
   }, [isMockMode]);
 
@@ -519,6 +396,8 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         ) {
           fetchSupabaseData();
         } else if (event === 'SIGNED_OUT') {
+          authGeneration.current++;
+          fetchSequence.current++;
           setIsAuthenticated(false);
           setActiveUserId('');
           setState({
@@ -542,13 +421,13 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
   }, [isMockMode, fetchSupabaseData]);
 
   const { userAId, userBId } = useMemo(() => {
-    const firstMember = state.members[0]?.user_id || DEMO_USER_A_ID;
-    const secondMember = state.members[1]?.user_id || DEMO_USER_B_ID;
+    const firstMember = state.space?.user_a_id || state.members[0]?.user_id || DEMO_USER_A_ID;
+    const secondMember = state.space?.user_b_id || state.members[1]?.user_id || DEMO_USER_B_ID;
     return {
       userAId: firstMember,
       userBId: secondMember,
     };
-  }, [state.members]);
+  }, [state.members, state.space]);
 
   const currentUser = useMemo<Profile | null>(() => {
     const currentId = activeUserId;
@@ -595,6 +474,11 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
     const spaceId = state.space.id;
 
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => { void fetchSupabaseData(); }, 100);
+    };
     const channel = supabase
       .channel(`space-${spaceId}`)
       .on(
@@ -606,7 +490,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           filter: `space_id=eq.${spaceId}`,
         },
         (payload) => {
-          fetchSupabaseData();
+          scheduleRefresh();
           if (payload.eventType === 'INSERT' && payload.new) {
             const row = payload.new as {
               id?: string;
@@ -630,14 +514,14 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'settlements',
           filter: `space_id=eq.${spaceId}`,
         },
         (payload) => {
-          fetchSupabaseData();
-          if (payload.new) {
+          scheduleRefresh();
+          if (payload.eventType === 'INSERT' && payload.new) {
             const row = payload.new as {
               id?: string;
               from_user_id?: string;
@@ -665,7 +549,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           filter: `space_id=eq.${spaceId}`,
         },
         () => {
-          fetchSupabaseData();
+          scheduleRefresh();
         }
       )
       .on(
@@ -677,14 +561,18 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           filter: `space_id=eq.${spaceId}`,
         },
         () => {
-          fetchSupabaseData();
+          scheduleRefresh();
         }
       )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `space_id=eq.${spaceId}` }, () => { void scheduleRefresh(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_logs', filter: `space_id=eq.${spaceId}` }, () => { void scheduleRefresh(); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'spaces', filter: `id=eq.${spaceId}` }, () => { scheduleRefresh(); })
       .subscribe((status) => {
         setIsRealtimeConnected(status === 'SUBSCRIBED');
       });
 
     return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
       supabase.removeChannel(channel);
     };
   }, [
@@ -879,13 +767,33 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
   }, [isMockMode, switchDemoActiveUser]);
 
   const logout = useCallback(async () => {
+    authGeneration.current++;
+    fetchSequence.current++;
     setIsAuthenticated(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem(AUTH_SESSION_KEY, 'false');
     }
     if (!isMockMode) {
+      try {
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.getRegistration();
+          const subscription = await registration?.pushManager?.getSubscription();
+          if (subscription) {
+            await subscription.unsubscribe();
+            await fetch('/api/push/subscribe', {
+              method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ endpoint: subscription.endpoint }),
+            }).catch(() => undefined);
+          }
+        }
+      } catch {
+        // Signing out must still work if the device cannot unregister push.
+      }
+      setIsPushSubscribed(false);
       const supabase = createClient();
-      await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) throw new Error(signOutError.message);
+      setState(getInitialStorage(false));
     }
   }, [isMockMode]);
 
@@ -944,39 +852,12 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       } = await supabase.auth.getUser();
       if (!user) throw new Error('Silakan masuk terlebih dahulu.');
 
-      const { data: spaceData, error: spaceErr } = await supabase
-        .from('spaces')
-        .insert({
-          name: cleanSpaceName,
-          invite_code: inviteCode,
-          created_by: user.id,
-        })
-        .select('*')
-        .single();
-
-      if (spaceErr || !spaceData) {
-        throw new Error(spaceErr?.message || 'Gagal bikin Space.');
-      }
-
-      const { error: memberErr } = await supabase.from('space_members').insert({
-        space_id: spaceData.id,
-        user_id: user.id,
-        nickname: cleanNickname,
-        role: 'owner',
+      const { data: spaceData, error: spaceErr } = await supabase.rpc('create_couple_space', {
+        _name: cleanSpaceName, _nickname: cleanNickname,
       });
-
-      if (memberErr) {
-        throw new Error(memberErr.message);
-      }
-
-      // Sinkronkan juga ke profiles.display_name agar seragam di seluruh app
-      await supabase
-        .from('profiles')
-        .update({ display_name: cleanNickname, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
-
+      if (spaceErr || !spaceData) throw new Error(spaceErr?.message || 'Gagal membuat ruang.');
       await fetchSupabaseData();
-      return { inviteCode };
+      return { inviteCode: spaceData.invite_code };
     },
     [
       isMockMode,
@@ -1043,44 +924,10 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       } = await supabase.auth.getUser();
       if (!user) throw new Error('Silakan masuk terlebih dahulu.');
 
-      const { data: targetSpace, error: findErr } = await supabase
-        .from('spaces')
-        .select('*')
-        .eq('invite_code', normalizedCode)
-        .single();
-
-      if (findErr || !targetSpace) {
-        throw new Error('Kode undangan tidak ditemukan.');
-      }
-
-      const { count } = await supabase
-        .from('space_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('space_id', targetSpace.id);
-
-      if ((count ?? 0) >= 2) {
-        throw new Error(
-          'Space ini sudah penuh (maksimal 2 orang per Space).'
-        );
-      }
-
-      const { error: joinErr } = await supabase.from('space_members').insert({
-        space_id: targetSpace.id,
-        user_id: user.id,
-        nickname: cleanNickname,
-        role: 'member',
+      const { error: joinErr } = await supabase.rpc('join_couple_space', {
+        _code: normalizedCode, _nickname: cleanNickname,
       });
-
-      if (joinErr) {
-        throw new Error(joinErr.message);
-      }
-
-      // Sinkronkan juga ke profiles.display_name agar seragam di seluruh app
-      await supabase
-        .from('profiles')
-        .update({ display_name: cleanNickname, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
-
+      if (joinErr) throw new Error(joinErr.message);
       await fetchSupabaseData();
     },
     [
@@ -1376,6 +1223,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
           user_b_share: shares.user_b_share,
           receipt_url: input.receipt_url ?? null,
           notes: input.notes?.trim() || null,
+          ...(input.spent_at ? { spent_at: input.spent_at } : {}),
         })
         .eq('id', id)
         .select('*')
@@ -1536,18 +1384,10 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       }
 
       const supabase = createClient();
-      const { data, error: stErr } = await supabase
-        .from('settlements')
-        .insert({
-          space_id: spaceId,
-          from_user_id: fromUserId,
-          to_user_id: toUserId,
-          amount,
-          notes: notes?.trim() || defaultNote,
-          settled_at: nowIso,
-        })
-        .select('*')
-        .single();
+      const { data, error: stErr } = await supabase.rpc('settle_balance', {
+        _space_id: spaceId, _expected_balance: netA, _amount: amount,
+        _notes: notes?.trim() || defaultNote, _request_id: crypto.randomUUID(),
+      });
 
       if (stErr || !data) {
         throw new Error(stErr?.message || 'Gagal mencatat settle up.');
@@ -1650,10 +1490,8 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       const target = state.events.find((e) => e.id === eventId);
       if (!target) return;
       const supabase = createClient();
-      await supabase
-        .from('events')
-        .update({ is_active: !target.is_active })
-        .eq('id', eventId);
+      const { error: eventError } = await supabase.rpc('set_active_event', { _event_id: eventId, _active: !target.is_active });
+      if (eventError) throw new Error(eventError.message);
       await fetchSupabaseData();
     },
     [isMockMode, state, broadcastLocalState, fetchSupabaseData]
@@ -1871,28 +1709,8 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       } = await supabase.auth.getUser();
       if (!user) throw new Error('Silakan login terlebih dahulu.');
 
-      // Update profil di table profiles
-      const { error: profErr } = await supabase
-        .from('profiles')
-        .update({
-          display_name: cleanName,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-
-      if (profErr) {
-        throw new Error(profErr.message);
-      }
-
-      // Update juga di space_members jika sudah bergabung ke space
-      if (state.space?.id) {
-        await supabase
-          .from('space_members')
-          .update({ nickname: cleanName })
-          .eq('space_id', state.space.id)
-          .eq('user_id', user.id);
-      }
-
+      const { error: nicknameError } = await supabase.rpc('update_nickname', { _nickname: cleanName });
+      if (nicknameError) throw new Error(nicknameError.message);
       await fetchSupabaseData();
     },
     [isMockMode, currentUser, activeUserId, state, broadcastLocalState, fetchSupabaseData]
@@ -1912,16 +1730,11 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
 
     const spaceId = state.space?.id ?? DEMO_SPACE_ID;
     const supabase = createClient();
-    await supabase.from('quick_presets').delete().eq('space_id', spaceId);
-    await supabase.from('quick_presets').insert(
-      QUICK_PRESETS.map((p) => ({
-        space_id: spaceId,
-        label: p.label,
-        amount: p.amount,
-        category_name: p.categoryName,
-        icon_name: p.iconName,
-      }))
-    );
+    const { error: resetError } = await supabase.rpc('reset_quick_presets', {
+      _space_id: spaceId,
+      _presets: QUICK_PRESETS.map((p) => ({ label: p.label, amount: p.amount, categoryName: p.categoryName, iconName: p.iconName })),
+    });
+    if (resetError) throw new Error(resetError.message);
     await fetchSupabaseData();
   }, [isMockMode, state, broadcastLocalState, fetchSupabaseData]);
 
@@ -1958,13 +1771,8 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     const spaceId = state.space.id;
     const supabase = createClient();
 
-    const [txDel, stDel] = await Promise.all([
-      supabase.from('transactions').delete().eq('space_id', spaceId),
-      supabase.from('settlements').delete().eq('space_id', spaceId),
-    ]);
-
-    if (txDel.error) throw new Error(txDel.error.message);
-    if (stDel.error) throw new Error(stDel.error.message);
+    const { error: resetError } = await supabase.rpc('clear_space_transactions', { _space_id: spaceId });
+    if (resetError) throw new Error(resetError.message);
 
     await fetchSupabaseData();
   }, [isMockMode, state, currentUser, broadcastLocalState, fetchSupabaseData]);
@@ -1993,11 +1801,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     } = await supabase.auth.getUser();
 
     if (user && state.space) {
-      const { error: leaveErr } = await supabase
-        .from('space_members')
-        .delete()
-        .eq('space_id', state.space.id)
-        .eq('user_id', user.id);
+      const { error: leaveErr } = await supabase.rpc('leave_couple_space', { _space_id: state.space.id });
 
       if (leaveErr) throw new Error(leaveErr.message);
     }
@@ -2015,6 +1819,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
 
   const computedActivityLogs = useMemo<ActivityLogItem[]>(() => {
     if (!state.space) return [];
+    if (!isMockMode) return state.activityLogs;
     const currentSpaceId = state.space.id;
 
     // 1. Log otomatis dari transaksi nyata di space ini
@@ -2063,11 +1868,13 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
         !l.id.startsWith('st-log-')
     );
 
-    const allLogs = [...customLogs, ...txLogs, ...stLogs];
+    const loggedTargets = new Set(customLogs.map((log) => log.target_id));
+    const allLogs = [...customLogs, ...txLogs.filter((log) => !loggedTargets.has(log.target_id)), ...stLogs.filter((log) => !loggedTargets.has(log.target_id))];
     return allLogs.sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
   }, [
+    isMockMode,
     state.space,
     state.transactions,
     state.settlements,
@@ -2119,7 +1926,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     const spaceId = state.space?.id ?? DEMO_SPACE_ID;
     const userId = currentUser?.id ?? activeUserId;
 
-    await fetch('/api/push/subscribe', {
+    const response = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2130,6 +1937,10 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       }),
     });
 
+    if (!response.ok) {
+      await sub.unsubscribe();
+      throw new Error('Gagal menyimpan langganan notifikasi. Coba lagi.');
+    }
     setIsPushSubscribed(true);
     setLiveNotification({
       id: `push-on-${Date.now()}`,
@@ -2148,15 +1959,17 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
       if (sub) {
         const endpoint = sub.endpoint;
         await sub.unsubscribe();
-        await fetch('/api/push/subscribe', {
+        const response = await fetch('/api/push/subscribe', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ endpoint }),
         });
+        if (!response.ok) throw new Error('Langganan perangkat dinonaktifkan, tetapi penghapusan di server gagal.');
       }
       setIsPushSubscribed(false);
-    } catch {
-      // Ignore unsubscribe errors
+    } catch (err) {
+      setIsPushSubscribed(false);
+      throw err;
     }
   }, []);
 
@@ -2180,7 +1993,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
             includeSelf: true,
           }),
         });
-        if (res.ok) {
+        if (res.ok && (await res.json()).sent > 0) {
           return true;
         }
       } catch {
@@ -2252,6 +2065,7 @@ export function KesflowProvider({ children }: { children: React.ReactNode }) {
     leaveCoupleSpace,
     resetDemoData,
     clearError,
+    refreshData: fetchSupabaseData,
   };
 
   return (

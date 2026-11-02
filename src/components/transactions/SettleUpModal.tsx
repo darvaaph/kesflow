@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { CheckCircle2, HandHeart } from 'lucide-react';
 import { useKesflow } from '@/context/KesflowContext';
@@ -39,14 +39,16 @@ export function SettleUpModal({ isOpen, onClose }: SettleUpModalProps) {
     remaining: number;
   } | null>(null);
 
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpen.current) {
       setSettleMode('full');
       setAmountInput(formatNumberInput(absAmount));
       setNotes('');
       setFormError(null);
       setSettledResult(null);
     }
+    wasOpen.current = isOpen;
   }, [isOpen, absAmount]);
 
   const numericInputAmount =

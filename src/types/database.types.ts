@@ -40,6 +40,8 @@ export type Database = {
       };
       spaces: {
         Row: {
+          user_a_id?: string | null;
+          user_b_id?: string | null;
           id: string;
           name: string;
           invite_code: string;
@@ -295,6 +297,15 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      get_space_snapshot: { Args: Record<string, never>; Returns: Json };
+      create_couple_space: { Args: { _name: string; _nickname: string }; Returns: Database['public']['Tables']['spaces']['Row'] };
+      join_couple_space: { Args: { _code: string; _nickname: string }; Returns: undefined };
+      leave_couple_space: { Args: { _space_id: string }; Returns: undefined };
+      update_nickname: { Args: { _nickname: string }; Returns: undefined };
+      settle_balance: { Args: { _space_id: string; _expected_balance: number; _amount: number; _notes: string; _request_id: string }; Returns: Database['public']['Tables']['settlements']['Row'] };
+      clear_space_transactions: { Args: { _space_id: string }; Returns: undefined };
+      reset_quick_presets: { Args: { _space_id: string; _presets: Json }; Returns: undefined };
+      set_active_event: { Args: { _event_id: string; _active: boolean }; Returns: undefined };
       is_member_of_space: {
         Args: { _space_id: string };
         Returns: boolean;
